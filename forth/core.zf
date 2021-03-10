@@ -8,6 +8,9 @@
 : sin     129 sys ;
 : include 130 sys ;
 : save    131 sys ;
+: init    132 sys ;
+: rand    133 sys ;
+: dtell   134 sys ;
 
 
 ( dictionary access. These are shortcuts through the primitive operations are !!, @@ and ,, )

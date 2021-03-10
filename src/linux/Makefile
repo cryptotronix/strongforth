@@ -8,12 +8,12 @@ DEPS    := $(subst .c,.d, $(SRC))
 CC	:= $(CROSS)gcc
 
 VPATH   := ../zforth
-CFLAGS	+= -I. -I../zforth
-CFLAGS  += -Os -g -std=c89 -ansi -pedantic -MMD
+CFLAGS	+= -I. -I../zforth -I/usr/lib/cryptoauthlib -I/usr/include/cryptoauthlib
+#CFLAGS  += -Os -g -std=c89 -ansi -pedantic -MMD
 CFLAGS  += -fsanitize=address -Wall -Wextra -Werror -Wno-unused-parameter -Wno-clobbered -Wno-unused-result
-LDFLAGS	+= -fsanitize=address -g 
+LDFLAGS	+= -fsanitize=address -g
 
-LIBS	+= -lm
+LIBS	+= -lm -lcryptoauth -lusb-1.0
 
 ifndef noreadline
 LIBS	+= -lreadline

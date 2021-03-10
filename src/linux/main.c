@@ -16,8 +16,20 @@
 #endif
 
 #include "zforth.h"
+#include <cryptoauthlib/cryptoauthlib.h>
 
-
+ATCAIfaceCfg cfg_ateccx08a_kithid_default = {
+    .iface_type                  = ATCA_HID_IFACE,
+    .devtype                     = ATECC608,
+    {
+        .atcahid.dev_interface   = ATCA_KIT_AUTO_IFACE,
+        .atcahid.dev_identity    = 0,
+        .atcahid.idx             = 0,
+        .atcahid.vid             = 0x03EB,
+        .atcahid.pid             = 0x2312,
+        .atcahid.packetsize      = 64,
+    }
+};
 
 /*
  * Evaluate buffer with code, check return value and report errors
@@ -155,9 +167,54 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 			}
 			include(input);
 			break;
-		
+
 		case ZF_SYSCALL_USER + 3:
 			save("zforth.save");
+			break;
+
+                /* ATCA INIT */
+		case ZF_SYSCALL_USER + 4:
+                {
+                    ATCA_STATUS status = ATCA_GEN_FAIL;
+
+                    status = atcab_init(&cfg_ateccx08a_kithid_default);
+                    if (status != ATCA_SUCCESS)
+                        fprintf(stderr, "atcab_init() failed: %02x\r\n", status);
+                }
+		    break;
+
+                /* ATCA RANDOM */
+		case ZF_SYSCALL_USER + 5:
+                {
+                    zf_addr addr = zf_pop();
+                    zf_addr len;
+                    ATCA_STATUS status = ATCA_GEN_FAIL;
+                    uint8_t randomnum[32];
+
+                    status = atcab_random(randomnum);
+                    if (status != ATCA_SUCCESS)
+                        fprintf(stderr, "atcab_init() failed: %02x\r\n", status);
+                    else
+                    {
+                        len = dict_put_bytes(addr, randomnum, 32);
+                        /* push address and then length */
+                        zf_push(addr);
+                        zf_push(len);
+                    }
+
+                }
+	            break;
+
+                /* DECIMAL TELL */
+		case ZF_SYSCALL_USER + 6: {
+                        int i = 0;
+			zf_cell len = zf_pop();
+                        uint8_t *data = malloc(len);
+                        dict_get_bytes((zf_addr) zf_pop(), data, len);
+                        while (i < len)
+                            fprintf(stdout, "%d ", *(data + i++));
+			fflush(stdout);
+                        free(data); }
 			break;
 
 		default:
@@ -198,7 +255,7 @@ zf_cell zf_host_parse_num(const char *buf)
 
 void usage(void)
 {
-	fprintf(stderr, 
+	fprintf(stderr,
 		"usage: zfort [options] [src ...]\n"
 		"\n"
 		"Options:\n"
@@ -236,7 +293,7 @@ int main(int argc, char **argv)
 				exit(0);
 		}
 	}
-	
+
 	argc -= optind;
 	argv += optind;
 
