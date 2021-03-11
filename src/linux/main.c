@@ -286,7 +286,7 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
                         if (count > 0)
                             printf("%s", output);
                         else
-                            printf("failed.");
+                            printf("incorrectly encoded..\n");
 			fflush(stdout); }
 			break;
 
