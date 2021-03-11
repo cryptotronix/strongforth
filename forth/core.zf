@@ -8,9 +8,15 @@
 : sin     129 sys ;
 : include 130 sys ;
 : save    131 sys ;
-: init    132 sys ;
-: rand    133 sys ;
-: dtell   134 sys ;
+: dtell   132 sys ;
+: init    133 sys ;
+: getrand 134 sys ;
+: count   135 sys ;
+: cinc    136 sys ;
+: sign    137 sys ;
+: verify  138 sys ;
+: b34in   139 sys ;
+: b32tell 140 sys ;
 
 
 ( dictionary access. These are shortcuts through the primitive operations are !!, @@ and ,, )
@@ -89,6 +95,12 @@
 : ." compiling @ if postpone s" ' tell , else begin key dup 34 = if drop exit else emit fi again
      fi ; immediate
 
+( Registers )
+
+var pubkey 64 4 + allot
+var sig 64 4 + allot
+var random 32 4 + allot
+var digest 32 4 + allot
 
 ." Welcome to zForth, " here . ." bytes used" cr ;
 

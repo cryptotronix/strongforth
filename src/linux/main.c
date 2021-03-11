@@ -10,13 +10,17 @@
 #include <getopt.h>
 #include <math.h>
 
+#include <cryptoauthlib/cryptoauthlib.h>
+
 #ifdef USE_READLINE
 #include <readline/readline.h>
 #include <readline/history.h>
 #endif
 
 #include "zforth.h"
-#include <cryptoauthlib/cryptoauthlib.h>
+#include "base32.h"
+
+zf_addr B32_INPUT = 0;
 
 ATCAIfaceCfg cfg_ateccx08a_kithid_default = {
     .iface_type                  = ATCA_HID_IFACE,
@@ -172,49 +176,118 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 			save("zforth.save");
 			break;
 
+                /* DECIMAL TELL */
+		case ZF_SYSCALL_USER + 4: {
+                        int i = 0;
+			zf_cell len = 0;
+                        zf_addr addr = zf_pop();
+                        uint8_t *data;
+                        /* gets the length */
+                        dict_get_bytes(addr, &len, sizeof(zf_cell));
+                        /* get the actual data */
+                        data = malloc(len);
+                        dict_get_bytes(addr + sizeof(zf_cell), data, len);
+                        while (i < len)
+                            fprintf(stdout, "%d ", *(data + i++));
+			fflush(stdout);
+                        free(data); }
+			break;
+
                 /* ATCA INIT */
-		case ZF_SYSCALL_USER + 4:
-                {
+		case ZF_SYSCALL_USER + 5: {
                     ATCA_STATUS status = ATCA_GEN_FAIL;
 
                     status = atcab_init(&cfg_ateccx08a_kithid_default);
                     if (status != ATCA_SUCCESS)
                         fprintf(stderr, "atcab_init() failed: %02x\r\n", status);
-                }
+                    }
 		    break;
 
                 /* ATCA RANDOM */
-		case ZF_SYSCALL_USER + 5:
-                {
+		case ZF_SYSCALL_USER + 6: {
                     zf_addr addr = zf_pop();
-                    zf_addr len;
+                    zf_addr len = 32;
                     ATCA_STATUS status = ATCA_GEN_FAIL;
                     uint8_t randomnum[32];
 
                     status = atcab_random(randomnum);
                     if (status != ATCA_SUCCESS)
-                        fprintf(stderr, "atcab_init() failed: %02x\r\n", status);
+                        fprintf(stderr, "atcab_random() failed: %02x\r\n", status);
                     else
                     {
-                        len = dict_put_bytes(addr, randomnum, 32);
-                        /* push address and then length */
+                        dict_put_bytes(addr, &len, sizeof(zf_cell));
+                        dict_put_bytes(addr + sizeof(zf_cell), randomnum, 32);
+                        /* push address */
                         zf_push(addr);
-                        zf_push(len);
-                    }
-
-                }
+                    } }
 	            break;
 
-                /* DECIMAL TELL */
-		case ZF_SYSCALL_USER + 6: {
-                        int i = 0;
-			zf_cell len = zf_pop();
-                        uint8_t *data = malloc(len);
-                        dict_get_bytes((zf_addr) zf_pop(), data, len);
-                        while (i < len)
-                            fprintf(stdout, "%d ", *(data + i++));
-			fflush(stdout);
-                        free(data); }
+                /* ATCA COUNTER READ */
+		case ZF_SYSCALL_USER + 7: {
+                    ATCA_STATUS status = ATCA_GEN_FAIL;
+                    uint32_t counter_val;
+
+                    status = atcab_counter_read(1, &counter_val);
+                    if (status != ATCA_SUCCESS)
+                        fprintf(stderr, "atcab_counter_read() failed: %02x\r\n", status);
+                    else
+                    {
+                        zf_push(counter_val);
+                    } }
+	            break;
+
+                /* ATCA COUNTER INCREMENT */
+		case ZF_SYSCALL_USER + 8: {
+                    ATCA_STATUS status = ATCA_GEN_FAIL;
+                    uint32_t counter_val;
+
+                    status = atcab_counter_increment(1, &counter_val);
+                    if (status != ATCA_SUCCESS)
+                        fprintf(stderr, "atcab_counter_increment() failed: %02x\r\n", status);
+                    else
+                    {
+                        zf_push(counter_val);
+                    } }
+	            break;
+
+                /* ATCA ECDSA SIGN */
+		case ZF_SYSCALL_USER + 9: {
+                    }
+	            break;
+
+                /* ATCA ECDSA VERIFY */
+		case ZF_SYSCALL_USER + 10: {
+                    }
+	            break;
+
+                /* BASE 32 VALUE IN */
+		case ZF_SYSCALL_USER + 11: {
+                    zf_addr addr = zf_pop();
+                    /* set global b32 input flag */
+                    B32_INPUT = addr;
+                    zf_push(addr);
+                    }
+	            break;
+
+                /* BASE 32 TELL */
+		case ZF_SYSCALL_USER + 12: {
+                        int count = 0;
+			zf_cell len = 0;
+                        zf_addr addr = zf_pop();
+                        uint8_t *data;
+                        uint8_t output[32];
+                        /* gets the length */
+                        dict_get_bytes(addr, &len, sizeof(zf_cell));
+                        /* get the actual data */
+                        data = malloc(len);
+                        dict_get_bytes(addr + sizeof(zf_cell), data, len);
+                        count = base32_encode(data, len, output, 32);
+                        free(data);
+                        if (count > 0)
+                            printf("%s", output);
+                        else
+                            printf("failed.");
+			fflush(stdout); }
 			break;
 
 		default:
@@ -245,10 +318,32 @@ void zf_host_trace(const char *fmt, va_list va)
 zf_cell zf_host_parse_num(const char *buf)
 {
 	zf_cell v;
-	int r = sscanf(buf, "%f", &v);
-	if(r == 0) {
-		zf_abort(ZF_ABORT_NOT_A_WORD);
-	}
+        uint8_t b32buf[64];
+        zf_cell b32len = 0;
+        zf_addr addr;
+
+        if (B32_INPUT != 0)
+        {
+                addr = B32_INPUT;
+                B32_INPUT = 0;
+
+                b32len = base32_decode((const uint8_t*) buf, b32buf, 64);
+                if (b32len > 0)
+                {
+                        dict_put_bytes(addr, &b32len, sizeof(zf_cell));
+                        dict_put_bytes(addr + sizeof(zf_cell), b32buf, b32len);
+                }
+                else
+		        zf_abort(ZF_ABORT_NOT_A_WORD);
+                v = addr;
+        }
+        else
+        {
+	        int r = sscanf(buf, "%d", &v);
+	        if(r == 0) {
+		        zf_abort(ZF_ABORT_NOT_A_WORD);
+	        }
+        }
 	return v;
 }
 
