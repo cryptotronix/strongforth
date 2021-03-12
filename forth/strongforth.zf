@@ -12,6 +12,7 @@
 ( custom system calls )
 
 : dtell   ( reg -- )			132 sys ;
+( when b32in is called, next number pushed is interpreted as base32 and puts addr on stack )
 : b32in   ( reg -- )			133 sys ;
 : b32tell ( reg -- )			134 sys ;
 : init    ( -- )			135 sys ;
