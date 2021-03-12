@@ -59,6 +59,7 @@ zf_cell zf_pick(zf_addr n);
 
 void dict_get_bytes(zf_addr addr, void *buf, size_t len);
 zf_addr dict_put_bytes(zf_addr addr, const void *buf, size_t len);
+uint8_t *dict_get_pointer(zf_addr addr, size_t len);
 
 /* Host provides these functions */
 

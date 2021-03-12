@@ -234,6 +234,12 @@ void dict_get_bytes(zf_addr addr, void *buf, size_t len)
 	while(len--) *p++ = dict[addr++];
 }
 
+uint8_t *dict_get_pointer(zf_addr addr, size_t len)
+{
+	CHECK(addr < ZF_DICT_SIZE-len, ZF_ABORT_OUTSIDE_MEM);
+        return (uint8_t*) dict + addr;
+}
+
 
 /*
  * zf_cells are encoded in the dictionary with a variable length:
