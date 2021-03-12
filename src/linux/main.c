@@ -288,9 +288,7 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
                 /* ATCA ECDSA VERIFY */
 		case ZF_SYSCALL_USER + 12: {
                     zf_cell pass = 0;
-                    uint8_t *pubkey;
-                    zf_addr pk_addr = zf_pop();
-                    zf_cell pklen = get_crypto_pointer(&pubkey, pk_addr);
+                    zf_cell pub_key_id = zf_pop();
                     uint8_t *sig;
                     zf_addr sig_addr = zf_pop();
                     zf_cell siglen = get_crypto_pointer(&sig, sig_addr);
@@ -298,15 +296,13 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
                     zf_addr msg_addr = zf_pop();
                     zf_cell msglen = get_crypto_pointer(&msg, msg_addr);
 
-                    if (pklen != 64)
-                        fprintf(stderr, "pubkey buf not 64 bytes.");
-                    else if (siglen != 64)
+                    if (siglen != 64)
                     	fprintf(stderr, "sig buf not 64 bytes.");
                     else if (msglen != 32)
                     	fprintf(stderr, "msg buf not 32 bytes.");
                     else
                     {
-                        status = atcab_verify_extern(msg, sig, pubkey, (bool *)&pass);
+                        status = atcab_verify_stored(msg, sig, pub_key_id, (bool *)&pass);
                         if (status != ATCA_SUCCESS)
                             fprintf(stderr, "atcab_verify_extern() failed: %02x\r\n", status);
                         else
@@ -325,7 +321,7 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 		    else
 		    {
                     	if (status != ATCA_SUCCESS)
-                    	    fprintf(stderr, "atcab_genkey() failed: %02x\r\n", status);
+                    	    fprintf(stderr, "atcab_get_pubkey() failed: %02x\r\n", status);
                     	else
                     	    zf_push(pk_addr);
 		    } }
@@ -333,7 +329,19 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 
                 /* ATCA SET PUB KEY */
 		case ZF_SYSCALL_USER + 14: {
-                    }
+		    uint8_t *pubkey;
+                    zf_addr pk_addr = zf_pop();
+		    uint8_t len = get_crypto_pointer(&pubkey, pk_addr);
+                    status = atcab_write_pubkey(zf_pop(), pubkey);
+                    if (len != 64)
+                        fprintf(stderr, "pubkey buf not 64 bytes.");
+		    else
+		    {
+                    	if (status != ATCA_SUCCESS)
+                    	    fprintf(stderr, "atcab_write_pubkey() failed: %02x\r\n", status);
+                    	else
+                    	    zf_push(pk_addr);
+		    } }
 	            break;
 
 		default:
