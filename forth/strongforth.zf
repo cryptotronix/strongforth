@@ -8,17 +8,17 @@
 : sin     129 sys ;
 : include 130 sys ;
 : save    131 sys ;
-: dtell   132 sys ;
-: b32in   133 sys ;
-: b32tell 134 sys ;
-: init    135 sys ;
-: getrand 136 sys ;
-: count   137 sys ;
-: cinc    138 sys ;
-: sign    139 sys ;
-: verify  140 sys ;
-: getpub  141 sys ;
-: setpub  142 sys ;
+: dtell   ( reg -- )			132 sys ;
+: b32in   ( reg -- )			133 sys ;
+: b32tell ( reg -- )			134 sys ;
+: init    ( -- )			135 sys ;
+: getrand ( random -- )			136 sys ;
+: counter ( -- curval )			137 sys ;
+: cntrinc ( -- curval )			138 sys ;
+: sign    ( digest prislot sig -- )	139 sys ;
+: verify  ( digest pubslot sig -- pass)	140 sys ;
+: getpub  ( slot pubkey -- )		141 sys ;
+: setpub  ( slot pubkey -- )		142 sys ;
 
 
 ( dictionary access. These are shortcuts through the primitive operations are !!, @@ and ,, )
@@ -27,6 +27,8 @@
 : @    0 @@ ;
 : ,    0 ,, ;
 : #    0 ## ;
+
+( typed dictionary access for single byte operations )
 : !u8 2 !! ;
 : @u8 2 @@ ;
 : ,u8 2 ,, ;

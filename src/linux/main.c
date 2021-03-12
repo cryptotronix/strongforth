@@ -204,7 +204,6 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
                     zf_addr addr = zf_pop();
                     /* set global b32 input flag */
                     B32_INPUT = addr;
-                    zf_push(addr);
                     }
 	            break;
 
@@ -235,8 +234,6 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
                     status = atcab_random(dict_get_pointer(addr + 1, 32));
                     if (status != ATCA_SUCCESS)
                         fprintf(stderr, "atcab_random() failed: %02x\r\n", status);
-                    else
-                        zf_push(addr);
                     }
 	            break;
 
@@ -267,46 +264,55 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
                     uint8_t *sig;
                     zf_addr sig_addr = zf_pop();
                     zf_cell siglen = get_crypto_pointer(&sig, sig_addr);
-                    uint8_t *msg;
-                    zf_addr msg_addr = zf_pop();
-                    zf_cell msglen = get_crypto_pointer(&msg, msg_addr);
+
+                    zf_cell pri_key_id = zf_pop();
+
+                    uint8_t *digest;
+                    zf_addr dig_addr = zf_pop();
+                    zf_cell diglen = get_crypto_pointer(&digest, dig_addr);
 
 		    if (siglen != 64)
                     	fprintf(stderr, "sig buf not 64 bytes.");
-		    else if (msglen != 32)
-                    	fprintf(stderr, "msg buf not 32 bytes.");
+		    else if (diglen != 32)
+                    	fprintf(stderr, "digest buf not 32 bytes.");
 		    else
 		    {
-                    	status = atcab_sign(zf_pop(), msg, sig);
+                    	status = atcab_sign(pri_key_id, digest, sig);
                     	if (status != ATCA_SUCCESS)
                     	    fprintf(stderr, "atcab_sign() failed: %02x\r\n", status);
-                    	else
-                    	    zf_push(sig_addr);
 		    } }
 	            break;
 
                 /* ATCA ECDSA VERIFY */
 		case ZF_SYSCALL_USER + 12: {
-                    zf_cell pass = 0;
-                    zf_cell pub_key_id = zf_pop();
                     uint8_t *sig;
                     zf_addr sig_addr = zf_pop();
                     zf_cell siglen = get_crypto_pointer(&sig, sig_addr);
-                    uint8_t *msg;
-                    zf_addr msg_addr = zf_pop();
-                    zf_cell msglen = get_crypto_pointer(&msg, msg_addr);
+
+                    zf_cell pub_key_id = zf_pop();
+
+                    uint8_t *digest;
+                    zf_addr dig_addr = zf_pop();
+                    zf_cell diglen = get_crypto_pointer(&digest, dig_addr);
+
+                    int8_t pass = 0;
 
                     if (siglen != 64)
                     	fprintf(stderr, "sig buf not 64 bytes.");
-                    else if (msglen != 32)
-                    	fprintf(stderr, "msg buf not 32 bytes.");
+                    else if (diglen != 32)
+                    	fprintf(stderr, "digest buf not 32 bytes.");
                     else
                     {
-                        status = atcab_verify_stored(msg, sig, pub_key_id, (bool *)&pass);
+                        status = atcab_verify_stored(digest, sig, pub_key_id, (bool *)&pass);
                         if (status != ATCA_SUCCESS)
                             fprintf(stderr, "atcab_verify_extern() failed: %02x\r\n", status);
-                        else
-                            zf_push(pass);
+			else
+			{
+			    if (pass)
+			        zf_push(0);
+			    else
+				zf_push(-1);
+			}
                     } }
 	            break;
 
@@ -315,15 +321,13 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 		    uint8_t *pubkey;
                     zf_addr pk_addr = zf_pop();
 		    uint8_t len = get_crypto_pointer(&pubkey, pk_addr);
-                    status = atcab_get_pubkey(zf_pop(), pubkey);
                     if (len != 64)
                         fprintf(stderr, "pubkey buf not 64 bytes.");
 		    else
 		    {
+                    	status = atcab_get_pubkey(zf_pop(), pubkey);
                     	if (status != ATCA_SUCCESS)
                     	    fprintf(stderr, "atcab_get_pubkey() failed: %02x\r\n", status);
-                    	else
-                    	    zf_push(pk_addr);
 		    } }
 	            break;
 
@@ -332,15 +336,13 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 		    uint8_t *pubkey;
                     zf_addr pk_addr = zf_pop();
 		    uint8_t len = get_crypto_pointer(&pubkey, pk_addr);
-                    status = atcab_write_pubkey(zf_pop(), pubkey);
                     if (len != 64)
                         fprintf(stderr, "pubkey buf not 64 bytes.");
 		    else
 		    {
+                    	status = atcab_write_pubkey(zf_pop(), pubkey);
                     	if (status != ATCA_SUCCESS)
                     	    fprintf(stderr, "atcab_write_pubkey() failed: %02x\r\n", status);
-                    	else
-                    	    zf_push(pk_addr);
 		    } }
 	            break;
 
