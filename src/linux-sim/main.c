@@ -295,7 +295,26 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 		case ZF_SYSCALL_USER + 14: {
                     }
 	            break;
-		case ZF_SYSCALL_USER + 30: {
+		/* ECDH */
+		case ZF_SYSCALL_USER + 15: {
+
+			uint8_t *sharedsec;
+			int sharedsec_len = get_crypto_pointer(&sharedsec, zf_pop());
+			uint8_t *prikey;
+			int prikey_len = get_crypto_pointer(&prikey, zf_pop());
+			uint8_t *pubkey;
+			int pubkey_len = get_crypto_pointer(&pubkey, zf_pop());
+			
+			assert(pubkey_len == 64);
+			assert(prikey_len == 32);
+			assert(sharedsec_len == 32);
+
+			int rc = uECC_shared_secret(pubkey, prikey, sharedsec);
+			assert(1 == rc);
+		}
+		break;
+		case ZF_SYSCALL_USER + 30:
+		{
 
 			uint8_t *pubkey;
 			int pubkey_len = get_crypto_pointer(&pubkey, zf_pop());
