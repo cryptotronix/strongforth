@@ -346,6 +346,30 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 		    } }
 	            break;
 
+                /* ATCA ECDH */
+		case ZF_SYSCALL_USER + 15: {
+		    uint8_t *pubkey;
+                    zf_addr pk_addr = zf_pop();
+		    uint8_t pklen = get_crypto_pointer(&pubkey, pk_addr);
+
+                    zf_cell pub_key_id = zf_pop();
+
+                    uint8_t *sharsec;
+                    zf_addr shsc_addr = zf_pop();
+                    zf_cell shsclen = get_crypto_pointer(&sharsec, shsc_addr);
+
+                    if (pklen != 64)
+                    	fprintf(stderr, "pubkey buf not 64 bytes.");
+                    else if (shsclen != 32)
+                    	fprintf(stderr, "sharsec buf not 32 bytes.");
+                    else
+                    {
+                        status = atcab_ecdh(pub_key_id, pubkey, sharsec);
+                        if (status != ATCA_SUCCESS)
+                            fprintf(stderr, "atcab_verify_extern() failed: %02x\r\n", status);
+                    } }
+	            break;
+
 		default:
 			printf("unhandled syscall %d\n", id);
 			break;
