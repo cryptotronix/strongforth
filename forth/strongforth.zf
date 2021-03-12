@@ -22,7 +22,7 @@
 : verify  ( digest pubslot sig -- pass)	140 sys ;
 : getpub  ( slot pubkey -- )		141 sys ;
 : setpub  ( slot pubkey -- )		142 sys ;
-: ecdh  ( pubkey pubslot sharsec -- )	143 sys ;
+: ecdh    ( pubkey prislot sharsec -- )	143 sys ;
 
 
 ( dictionary access. These are shortcuts through the primitive operations are !!, @@ and ,, )
