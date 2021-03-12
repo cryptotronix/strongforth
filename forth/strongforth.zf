@@ -8,6 +8,17 @@
 : sin     129 sys ;
 : include 130 sys ;
 : save    131 sys ;
+: dtell   132 sys ;
+: b32in   133 sys ;
+: b32tell 134 sys ;
+: init    135 sys ;
+: getrand 136 sys ;
+: count   137 sys ;
+: cinc    138 sys ;
+: sign    139 sys ;
+: verify  140 sys ;
+: getpub  141 sys ;
+: setpub  142 sys ;
 
 
 ( dictionary access. These are shortcuts through the primitive operations are !!, @@ and ,, )
@@ -16,6 +27,9 @@
 : @    0 @@ ;
 : ,    0 ,, ;
 : #    0 ## ;
+: !u8 2 !! ;
+: @u8 2 @@ ;
+: ,u8 2 ,, ;
 
 
 ( compiler state )
@@ -86,8 +100,20 @@
 : ." compiling @ if postpone s" ' tell , else begin key dup 34 = if drop exit else emit fi again
      fi ; immediate
 
+( crypto registers for big numbers )
 
-." Welcome to zForth, " here . ." bytes used" cr ;
+var pubkey 64 1 + allot
+var sig 64 1 + allot
+var random 32 1 + allot
+var digest 32 1 + allot
+
+( setting size byte )
+64 pubkey !u8
+64 sig !u8
+32 random !u8
+32 digest !u8
+
+." Welcome to strongForth, " here . ." bytes used" cr ;
 
 
 (

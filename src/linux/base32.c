@@ -16,6 +16,7 @@
 // limitations under the License.
 
 #include <string.h>
+#include <stdio.h>
 
 #include "base32.h"
 
@@ -90,6 +91,36 @@ int base32_encode(const uint8_t *data, int length, uint8_t *result,
   }
   if (count < bufSize) {
     result[count] = '\000';
+  }
+  return count;
+}
+
+int base32_emit(const uint8_t *data, int length) {
+  if (length < 0 || length > (1 << 28)) {
+    return -1;
+  }
+  int count = 0;
+  if (length > 0) {
+    int buffer = data[0];
+    int next = 1;
+    int bitsLeft = 8;
+    while (bitsLeft > 0 || next < length) {
+      if (bitsLeft < 5) {
+        if (next < length) {
+          buffer <<= 8;
+          buffer |= data[next++] & 0xFF;
+          bitsLeft += 8;
+        } else {
+          int pad = 5 - bitsLeft;
+          buffer <<= pad;
+          bitsLeft += pad;
+        }
+      }
+      int index = 0x1F & (buffer >> (bitsLeft - 5));
+      bitsLeft -= 5;
+      printf("%c", "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"[index]);
+      count++;
+    }
   }
   return count;
 }
