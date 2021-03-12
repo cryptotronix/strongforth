@@ -789,7 +789,7 @@ static void handle_word(const char *buf)
 
 static void handle_char(char c)
 {
-	static char buf[32];
+	static char buf[104];
 	static size_t len = 0;
 
 	if(input_state == ZF_INPUT_PASS_CHAR) {

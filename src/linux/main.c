@@ -288,23 +288,22 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
                 /* ATCA ECDSA VERIFY */
 		case ZF_SYSCALL_USER + 12: {
                     zf_cell pass = 0;
-                    uint8_t pubkey[64];
+                    uint8_t *pubkey;
                     zf_addr pk_addr = zf_pop();
-                    zf_cell pklen = get_crypto_pointer((uint8_t**) &pubkey, pk_addr);
-                    uint8_t sig[64];
+                    zf_cell pklen = get_crypto_pointer(&pubkey, pk_addr);
+                    uint8_t *sig;
                     zf_addr sig_addr = zf_pop();
-                    zf_cell siglen = get_crypto_pointer((uint8_t**) &sig, sig_addr);
+                    zf_cell siglen = get_crypto_pointer(&sig, sig_addr);
                     uint8_t *msg;
                     zf_addr msg_addr = zf_pop();
-                    zf_cell msglen = get_crypto_pointer((uint8_t**) &msg, msg_addr);
-                    ATCA_STATUS status = ATCA_GEN_FAIL;
+                    zf_cell msglen = get_crypto_pointer(&msg, msg_addr);
 
-                    if (pklen < 1)
-                        fprintf(stderr, "no public key.");
-                    else if (siglen < 1)
-                        fprintf(stderr, "no signature.");
-                    else if (msglen < 1)
-                        fprintf(stderr, "no digest.");
+                    if (pklen != 64)
+                        fprintf(stderr, "pubkey buf not 64 bytes.");
+                    else if (siglen != 64)
+                    	fprintf(stderr, "sig buf not 64 bytes.");
+                    else if (msglen != 32)
+                    	fprintf(stderr, "msg buf not 32 bytes.");
                     else
                     {
                         status = atcab_verify_extern(msg, sig, pubkey, (bool *)&pass);
@@ -322,7 +321,7 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 		    uint8_t len = get_crypto_pointer(&pubkey, pk_addr);
                     status = atcab_get_pubkey(zf_pop(), pubkey);
                     if (len != 64)
-                        fprintf(stderr, "pubkey buf too small.");
+                        fprintf(stderr, "pubkey buf not 64 bytes.");
 		    else
 		    {
                     	if (status != ATCA_SUCCESS)
