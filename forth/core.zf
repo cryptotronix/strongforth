@@ -9,14 +9,15 @@
 : include 130 sys ;
 : save    131 sys ;
 : dtell   132 sys ;
-: init    133 sys ;
-: getrand 134 sys ;
-: count   135 sys ;
-: cinc    136 sys ;
-: sign    137 sys ;
-: verify  138 sys ;
-: b34in   139 sys ;
-: b32tell 140 sys ;
+: b32in   133 sys ;
+: b32tell 134 sys ;
+: init    135 sys ;
+: getrand 136 sys ;
+: count   137 sys ;
+: cinc    138 sys ;
+: sign    139 sys ;
+: verify  140 sys ;
+: getpub 141 sys ;
 
 
 ( dictionary access. These are shortcuts through the primitive operations are !!, @@ and ,, )
