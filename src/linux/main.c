@@ -370,6 +370,11 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
                     } }
 	            break;
 
+                /* GET STRONGFORTH STATUS */
+		case ZF_SYSCALL_USER + 16:
+		    zf_push(strongheld_status_get());
+	            break;
+
 		default:
 			printf("unhandled syscall %d\n", id);
 			break;

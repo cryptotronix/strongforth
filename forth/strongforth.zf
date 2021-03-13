@@ -24,6 +24,7 @@
 : getpub  ( slot pubkey -- )		141 sys ;
 : setpub  ( slot pubkey -- )		142 sys ;
 : ecdh    ( pubkey prislot sharsec -- )	143 sys ;
+: shstat  ( -- status )			144 sys ;
 
 
 ( dictionary access. These are shortcuts through the primitive operations are !!, @@ and ,, )

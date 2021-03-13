@@ -25,6 +25,11 @@
 #define CHECK(exp, abort)
 #endif
 
+/* Defining the Strongheld status "register". Importantly, this register cannot
+ * be written to by the forth interpreter, only read. */
+
+static zf_cell STRONGHELD_STATUS = 0;
+
 
 /* Define all primitives, make sure the two tables below always match.  The
  * names are defined as a \0 separated list, terminated by double \0. This
@@ -240,6 +245,19 @@ uint8_t *dict_get_pointer(zf_addr addr, size_t len)
         return (uint8_t*) dict + addr;
 }
 
+/* Getter and setter for the strongheld status register */
+
+/*
+static void strongheld_status_set(zf_cell val)
+{
+	STRONGHELD_STATUS = val;
+}
+*/
+
+zf_cell strongheld_status_get()
+{
+	return STRONGHELD_STATUS;
+}
 
 /*
  * zf_cells are encoded in the dictionary with a variable length:
