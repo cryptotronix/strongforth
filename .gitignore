@@ -6,3 +6,12 @@ go
 src/linux/zforth
 zforth.save
 .zforth.hist
+
+# Untracked files in MPLABX projects
+/**/build/*
+/**/dist/*
+/**/nbproject/*
+!/**/nbproject/*.xml
+/**/[Ff]ree/production/*
+/**/[Pp]ro/production/*
+/**/.generated_files/*
