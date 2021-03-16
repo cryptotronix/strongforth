@@ -10,14 +10,40 @@
 #include <getopt.h>
 #include <math.h>
 
+#include <cryptoauthlib/cryptoauthlib.h>
+
 #ifdef USE_READLINE
 #include <readline/readline.h>
 #include <readline/history.h>
 #endif
 
 #include "zforth.h"
+#include "base32.h"
 
+zf_addr B32_INPUT = 0;
 
+ATCAIfaceCfg cfg_ateccx08a_kithid_default = {
+    .iface_type                  = ATCA_HID_IFACE,
+    .devtype                     = ATECC608,
+    {
+        .atcahid.dev_interface   = ATCA_KIT_AUTO_IFACE,
+        .atcahid.dev_identity    = 0,
+        .atcahid.idx             = 0,
+        .atcahid.vid             = 0x03EB,
+        .atcahid.pid             = 0x2312,
+        .atcahid.packetsize      = 64,
+    }
+};
+
+static uint8_t get_crypto_pointer(uint8_t **buf, zf_addr addr)
+{
+    uint8_t len = 0;
+    /* gets the length */
+    dict_get_bytes(addr, &len, 1);
+    /* get the actual data */
+    *buf = dict_get_pointer(addr + 1, len);
+    return len;
+}
 
 /*
  * Evaluate buffer with code, check return value and report errors
@@ -116,6 +142,7 @@ static void load(const char *fname)
 
 zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 {
+        ATCA_STATUS status = ATCA_GEN_FAIL;
 	switch((int)id) {
 
 
@@ -155,10 +182,214 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 			}
 			include(input);
 			break;
-		
+
 		case ZF_SYSCALL_USER + 3:
 			save("zforth.save");
 			break;
+
+                /* DECIMAL TELL */
+		case ZF_SYSCALL_USER + 4: {
+                        int i = 0;
+                        uint8_t *data;
+                        zf_addr addr = zf_pop();
+                        zf_cell len = get_crypto_pointer(&data, addr);
+                        while (i < len)
+                            fprintf(stdout, "%d ", *(data + i++));
+			fflush(stdout);
+                        }
+			break;
+
+                /* BASE 32 VALUE IN */
+		case ZF_SYSCALL_USER + 5: {
+                    zf_addr addr = zf_pop();
+                    /* set global b32 input flag */
+                    B32_INPUT = addr;
+                    }
+	            break;
+
+                /* BASE 32 TELL */
+		case ZF_SYSCALL_USER + 6: {
+                        int count = 0;
+                        zf_addr addr = zf_pop();
+                        uint8_t *data;
+                        zf_cell len = get_crypto_pointer(&data, addr);
+
+                        count = base32_emit(data, len);
+                        if (count < 1)
+                            printf(" ERROR");
+			fflush(stdout); }
+			break;
+
+                /* ATCA INIT */
+		case ZF_SYSCALL_USER + 7: {
+                    status = atcab_init(&cfg_ateccx08a_kithid_default);
+                    if (status != ATCA_SUCCESS)
+                        fprintf(stderr, "atcab_init() failed: %02x\r\n", status);
+                    }
+		    break;
+
+                /* ATCA RANDOM */
+		case ZF_SYSCALL_USER + 8: {
+                    zf_addr addr = zf_pop();
+                    status = atcab_random(dict_get_pointer(addr + 1, 32));
+                    if (status != ATCA_SUCCESS)
+                        fprintf(stderr, "atcab_random() failed: %02x\r\n", status);
+                    }
+	            break;
+
+                /* ATCA COUNTER READ */
+		case ZF_SYSCALL_USER + 9: {
+                    uint32_t counter_val;
+                    status = atcab_counter_read(1, &counter_val);
+                    if (status != ATCA_SUCCESS)
+                        fprintf(stderr, "atcab_counter_read() failed: %02x\r\n", status);
+                    else
+                        zf_push(counter_val);
+                    }
+	            break;
+
+                /* ATCA COUNTER INCREMENT */
+		case ZF_SYSCALL_USER + 10: {
+                    uint32_t counter_val;
+                    status = atcab_counter_increment(1, &counter_val);
+                    if (status != ATCA_SUCCESS)
+                        fprintf(stderr, "atcab_counter_increment() failed: %02x\r\n", status);
+                    else
+                        zf_push(counter_val);
+                    }
+	            break;
+
+                /* ATCA ECDSA SIGN */
+		case ZF_SYSCALL_USER + 11: {
+                    uint8_t *sig;
+                    zf_addr sig_addr = zf_pop();
+                    zf_cell siglen = get_crypto_pointer(&sig, sig_addr);
+
+                    zf_cell pri_key_id = zf_pop();
+
+                    uint8_t *digest;
+                    zf_addr dig_addr = zf_pop();
+                    zf_cell diglen = get_crypto_pointer(&digest, dig_addr);
+
+		    if (siglen != 64)
+                    	fprintf(stderr, "sig buf not 64 bytes.");
+		    else if (diglen != 32)
+                    	fprintf(stderr, "digest buf not 32 bytes.");
+		    else
+		    {
+                    	status = atcab_sign(pri_key_id, digest, sig);
+                    	if (status != ATCA_SUCCESS)
+                    	    fprintf(stderr, "atcab_sign() failed: %02x\r\n", status);
+		    } }
+	            break;
+
+                /* ATCA ECDSA VERIFY */
+		case ZF_SYSCALL_USER + 12: {
+                    uint8_t *sig;
+                    zf_addr sig_addr = zf_pop();
+                    zf_cell siglen = get_crypto_pointer(&sig, sig_addr);
+
+                    zf_cell pub_key_id = zf_pop();
+
+                    uint8_t *digest;
+                    zf_addr dig_addr = zf_pop();
+                    zf_cell diglen = get_crypto_pointer(&digest, dig_addr);
+
+                    int8_t pass = 0;
+
+                    if (siglen != 64)
+                    	fprintf(stderr, "sig buf not 64 bytes.");
+                    else if (diglen != 32)
+                    	fprintf(stderr, "digest buf not 32 bytes.");
+                    else
+                    {
+                        status = atcab_verify_stored(digest, sig, pub_key_id, (bool *)&pass);
+                        if (status != ATCA_SUCCESS)
+                            fprintf(stderr, "atcab_verify_extern() failed: %02x\r\n", status);
+			else
+			{
+			    if (pass)
+			        zf_push(0);
+			    else
+				zf_push(-1);
+			}
+                    } }
+	            break;
+
+                /* ATCA GET PUB KEY */
+		case ZF_SYSCALL_USER + 13: {
+		    uint8_t *pubkey;
+                    zf_addr pk_addr = zf_pop();
+		    uint8_t len = get_crypto_pointer(&pubkey, pk_addr);
+                    if (len != 64)
+                        fprintf(stderr, "pubkey buf not 64 bytes.");
+		    else
+		    {
+                    	status = atcab_get_pubkey(zf_pop(), pubkey);
+                    	if (status != ATCA_SUCCESS)
+                    	    fprintf(stderr, "atcab_get_pubkey() failed: %02x\r\n", status);
+		    } }
+	            break;
+
+                /* ATCA SET PUB KEY */
+		case ZF_SYSCALL_USER + 14: {
+		    uint8_t *pubkey;
+                    zf_addr pk_addr = zf_pop();
+		    uint8_t len = get_crypto_pointer(&pubkey, pk_addr);
+                    if (len != 64)
+                        fprintf(stderr, "pubkey buf not 64 bytes.");
+		    else
+		    {
+                    	status = atcab_write_pubkey(zf_pop(), pubkey);
+                    	if (status != ATCA_SUCCESS)
+                    	    fprintf(stderr, "atcab_write_pubkey() failed: %02x\r\n", status);
+		    } }
+	            break;
+
+                /* ATCA ECDH */
+		case ZF_SYSCALL_USER + 15: {
+                    uint8_t *sharsec;
+                    zf_addr shsc_addr = zf_pop();
+                    zf_cell shsclen = get_crypto_pointer(&sharsec, shsc_addr);
+
+                    zf_cell pri_key_id = zf_pop();
+
+		    uint8_t *pubkey;
+                    zf_addr pk_addr = zf_pop();
+		    uint8_t pklen = get_crypto_pointer(&pubkey, pk_addr);
+
+                    if (pklen != 64)
+                    	fprintf(stderr, "pubkey buf not 64 bytes.");
+                    else if (shsclen != 32)
+                    	fprintf(stderr, "sharsec buf not 32 bytes.");
+                    else
+                    {
+                        status = atcab_ecdh(pri_key_id, pubkey, sharsec);
+                        if (status != ATCA_SUCCESS)
+                            fprintf(stderr, "atcab_ecdh() failed: %02x\r\n", status);
+                    } }
+	            break;
+
+                /* GET STRONGFORTH STATUS */
+		case ZF_SYSCALL_USER + 16:
+		    zf_push(strongheld_status_get());
+	            break;
+
+                /* ATCA GET SERIAL */
+		case ZF_SYSCALL_USER + 17: {
+                    uint8_t *serial;
+                    zf_addr ser_addr = zf_pop();
+                    zf_cell serlen = get_crypto_pointer(&serial, ser_addr);
+
+                    if (serlen != 9)
+                    	fprintf(stderr, "serial buf not 9 bytes.");
+                    else
+                    {
+                        status = atcab_read_serial_number(serial);
+                        if (status != ATCA_SUCCESS)
+                            fprintf(stderr, "atcab_read_serial_number() failed: %02x\r\n", status);
+                    } }
+	            break;
 
 		default:
 			printf("unhandled syscall %d\n", id);
@@ -188,17 +419,36 @@ void zf_host_trace(const char *fmt, va_list va)
 zf_cell zf_host_parse_num(const char *buf)
 {
 	zf_cell v;
-	int r = sscanf(buf, "%f", &v);
-	if(r == 0) {
-		zf_abort(ZF_ABORT_NOT_A_WORD);
-	}
+        uint8_t *b32buf;
+        int8_t b32len;
+        int8_t decolen;
+        zf_addr addr;
+
+        if (B32_INPUT != 0)
+        {
+                addr = B32_INPUT;
+                B32_INPUT = 0;
+
+		b32len = get_crypto_pointer(&b32buf, addr);
+                decolen = base32_decode((const uint8_t*) buf, b32buf, b32len);
+                if (decolen < 1)
+		        zf_abort(ZF_ABORT_NOT_A_WORD);
+                v = addr;
+        }
+        else
+        {
+	        int r = sscanf(buf, "%d", &v);
+	        if(r == 0) {
+		        zf_abort(ZF_ABORT_NOT_A_WORD);
+	        }
+        }
 	return v;
 }
 
 
 void usage(void)
 {
-	fprintf(stderr, 
+	fprintf(stderr,
 		"usage: zfort [options] [src ...]\n"
 		"\n"
 		"Options:\n"
@@ -236,7 +486,7 @@ int main(int argc, char **argv)
 				exit(0);
 		}
 	}
-	
+
 	argc -= optind;
 	argv += optind;
 

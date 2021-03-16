@@ -25,6 +25,11 @@
 #define CHECK(exp, abort)
 #endif
 
+/* Defining the Strongheld status "register". Importantly, this register cannot
+ * be written to by the forth interpreter, only read. */
+
+static zf_cell STRONGHELD_STATUS = 0;
+
 
 /* Define all primitives, make sure the two tables below always match.  The
  * names are defined as a \0 separated list, terminated by double \0. This
@@ -93,7 +98,7 @@ static zf_addr *uservar = (zf_addr *)dict;
 
 static void do_prim(zf_prim prim, const char *input);
 static zf_addr dict_get_cell(zf_addr addr, zf_cell *v);
-static void dict_get_bytes(zf_addr addr, void *buf, size_t len);
+void dict_get_bytes(zf_addr addr, void *buf, size_t len);
 
 
 /* Tracing functions. If disabled, the trace() function is replaced by an empty
@@ -160,7 +165,7 @@ void zf_abort(zf_result reason)
 
 
 /*
- * Stack operations. 
+ * Stack operations.
  */
 
 void zf_push(zf_cell v)
@@ -217,7 +222,7 @@ zf_cell zf_pickr(zf_addr n)
  * All access to dictionary memory is done through these functions.
  */
 
-static zf_addr dict_put_bytes(zf_addr addr, const void *buf, size_t len)
+zf_addr dict_put_bytes(zf_addr addr, const void *buf, size_t len)
 {
 	const uint8_t *p = (const uint8_t *)buf;
 	size_t i = len;
@@ -227,13 +232,32 @@ static zf_addr dict_put_bytes(zf_addr addr, const void *buf, size_t len)
 }
 
 
-static void dict_get_bytes(zf_addr addr, void *buf, size_t len)
+void dict_get_bytes(zf_addr addr, void *buf, size_t len)
 {
 	uint8_t *p = (uint8_t *)buf;
 	CHECK(addr < ZF_DICT_SIZE-len, ZF_ABORT_OUTSIDE_MEM);
 	while(len--) *p++ = dict[addr++];
 }
 
+uint8_t *dict_get_pointer(zf_addr addr, size_t len)
+{
+	CHECK(addr < ZF_DICT_SIZE-len, ZF_ABORT_OUTSIDE_MEM);
+        return (uint8_t*) dict + addr;
+}
+
+/* Getter and setter for the strongheld status register */
+
+/*
+static void strongheld_status_set(zf_cell val)
+{
+	STRONGHELD_STATUS = val;
+}
+*/
+
+zf_cell strongheld_status_get()
+{
+	return STRONGHELD_STATUS;
+}
 
 /*
  * zf_cells are encoded in the dictionary with a variable length:
@@ -277,10 +301,10 @@ static zf_addr dict_put_cell_typed(zf_addr addr, zf_cell v, zf_mem_size size)
 
 		trace(" ⁵");
 		t[0] = 0xff;
-		return dict_put_bytes(addr+0, t, 1) + 
+		return dict_put_bytes(addr+0, t, 1) +
 		       dict_put_bytes(addr+1, &v, sizeof(v));
-	} 
-	
+	}
+
 	PUT(ZF_MEM_SIZE_CELL, zf_cell, v);
 	PUT(ZF_MEM_SIZE_U8, uint8_t, vi);
 	PUT(ZF_MEM_SIZE_U16, uint16_t, vi);
@@ -312,8 +336,8 @@ static zf_addr dict_get_cell_typed(zf_addr addr, zf_cell *v, zf_mem_size size)
 			*v = t[0];
 			return 1;
 		}
-	} 
-	
+	}
+
 	GET(ZF_MEM_SIZE_CELL, zf_cell);
 	GET(ZF_MEM_SIZE_U8, uint8_t);
 	GET(ZF_MEM_SIZE_U16, uint16_t);
@@ -458,7 +482,7 @@ static void run(const char *input)
 
 		trace("\n "ZF_ADDR_FMT " " ZF_ADDR_FMT " ", ip, code);
 		for(i=0; i<rsp; i++) trace("┊  ");
-		
+
 		ip += l;
 
 		if(code <= PRIM_COUNT) {
@@ -479,7 +503,7 @@ static void run(const char *input)
 		}
 
 		input = NULL;
-	} 
+	}
 }
 
 
@@ -551,7 +575,7 @@ static void do_prim(zf_prim op, const char *input)
 		case PRIM_EXIT:
 			ip = zf_popr();
 			break;
-		
+
 		case PRIM_LEN:
 			len = zf_pop();
 			addr = zf_pop();
@@ -612,7 +636,7 @@ static void do_prim(zf_prim op, const char *input)
 			addr = zf_pop();
 			zf_push(zf_pick(addr));
 			break;
-		
+
 		case PRIM_PICKR:
 			addr = zf_pop();
 			zf_push(zf_pickr(addr));
@@ -705,7 +729,7 @@ static void do_prim(zf_prim op, const char *input)
 			zf_push(d1);
 			ip += d1;
 			break;
-		
+
 		case PRIM_AND:
 			zf_push((int)zf_pop() & (int)zf_pop());
 			break;
@@ -783,7 +807,7 @@ static void handle_word(const char *buf)
 
 static void handle_char(char c)
 {
-	static char buf[32];
+	static char buf[104];
 	static size_t len = 0;
 
 	if(input_state == ZF_INPUT_PASS_CHAR) {
@@ -862,7 +886,7 @@ void zf_bootstrap(void)
 	const char *p;
 	for(p=prim_names; *p; p+=strlen(p)+1) {
 		add_prim(p, (zf_prim)i++);
-	} 
+	}
 
 	i = 0;
 	for(p=uservar_names; *p; p+=strlen(p)+1) {
@@ -870,7 +894,7 @@ void zf_bootstrap(void)
 	}
 }
 
-#else 
+#else
 void zf_bootstrap(void) {}
 #endif
 

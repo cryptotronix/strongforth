@@ -1,0 +1,136 @@
+
+( system calls )
+
+: emit    0 sys ;
+: .       1 sys ;
+: tell    2 sys ;
+: quit    128 sys ;
+: sin     129 sys ;
+: include 130 sys ;
+: save    131 sys ;
+
+( custom system calls )
+
+: dtell   ( reg -- )			132 sys ;
+( when b32in is called, next number pushed is interpreted as base32 and puts addr on stack )
+: b32in   ( reg -- )			133 sys ;
+: b32tell ( reg -- )			134 sys ;
+: init    ( -- )			135 sys ;
+: getrand ( random -- )			136 sys ;
+: counter ( -- curval )			137 sys ;
+: cntrinc ( -- curval )			138 sys ;
+: sign    ( digest prislot sig -- )	139 sys ;
+: verify  ( digest pubslot sig -- pass)	140 sys ;
+: getpub  ( slot pubkey -- )		141 sys ;
+: setpub  ( slot pubkey -- )		142 sys ;
+: ecdh    ( pubkey prislot sharsec -- )	143 sys ;
+: shstat  ( -- status )			144 sys ;
+: getser  ( serial -- )			145 sys ;
+
+
+( dictionary access. These are shortcuts through the primitive operations are !!, @@ and ,, )
+
+: !    0 !! ;
+: @    0 @@ ;
+: ,    0 ,, ;
+: #    0 ## ;
+
+( typed dictionary access for single byte operations )
+: !u8 2 !! ;
+: @u8 2 @@ ;
+: ,u8 2 ,, ;
+
+
+( compiler state )
+
+: [ 0 compiling ! ; immediate
+: ] 1 compiling ! ;
+: postpone 1 _postpone ! ; immediate
+
+
+( some operators and shortcuts )
+
+: over 1 pick ;
+: +!   dup @ rot + swap ! ;
+: inc  1 swap +! ;
+: dec  -1 swap +! ;
+: <    - <0 ;
+: >    swap < ;
+: <=   over over >r >r < r> r> = + ;
+: >=   swap <= ;
+: =0   0 = ;
+: not  =0 ;
+: !=   = not ;
+: cr   10 emit ;
+: ..   dup . ;
+: here h @ ;
+
+
+( memory management )
+
+: allot  h +!  ;
+: var : postpone [ ' lit , here dup 5 + , ' exit , here swap ! 5 allot ;
+
+
+( 'begin' gets the current address, a jump or conditional jump back is generated
+  by 'again', 'until' or 'times' )
+
+: begin   here ; immediate
+: again   ' jmp , , ; immediate
+: until   ' jmp0 , , ; immediate
+: times ' 1 - , ' dup , ' =0 , postpone until ; immediate
+
+
+( 'if' prepares conditional jump, address will be filled in by 'else' or 'fi' )
+
+: if      ' jmp0 , here 999 , ; immediate
+: unless  ' not , postpone if ; immediate
+: else    ' jmp , here 999 , swap here swap ! ; immediate
+: fi      here swap ! ; immediate
+
+
+( forth style 'do' and 'loop', including loop iterators 'i' and 'j' )
+
+: i ' lit , 0 , ' pickr , ; immediate
+: j ' lit , 2 , ' pickr , ; immediate
+: do ' swap , ' >r , ' >r , here ; immediate
+: loop+ ' r> , ' + , ' dup , ' >r , ' lit , 1 , ' pickr , ' > , ' jmp0 , , ' r> , ' drop , ' r> , ' drop , ; immediate
+: loop ' lit , 1 , postpone loop+ ;  immediate
+
+
+( Create string literal, puts length and address on the stack )
+
+: s" compiling @ if ' lits , here 0 , fi here begin key dup 34 = if drop
+     compiling @ if here swap - swap ! else dup here swap - fi exit else , fi
+     again ; immediate
+
+( Print string literal )
+
+: ." compiling @ if postpone s" ' tell , else begin key dup 34 = if drop exit else emit fi again
+     fi ; immediate
+
+( crypto registers for big numbers )
+
+var pubkey 64 1 + allot
+var sig 64 1 + allot
+var random 32 1 + allot
+var digest 32 1 + allot
+var sharsec 32 1 + allot
+var serial 9 1 + allot
+
+( setting size byte )
+64 pubkey !u8
+64 sig !u8
+32 random !u8
+32 digest !u8
+32 sharsec !u8
+9 serial !u8
+
+." Welcome to strongForth, " here . ." bytes used" cr ;
+
+
+(
+vi: ts=3 sw=3 ft=forth
+)
+
+
