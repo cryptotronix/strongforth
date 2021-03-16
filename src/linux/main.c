@@ -375,6 +375,22 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 		    zf_push(strongheld_status_get());
 	            break;
 
+                /* ATCA GET SERIAL */
+		case ZF_SYSCALL_USER + 17: {
+                    uint8_t *serial;
+                    zf_addr ser_addr = zf_pop();
+                    zf_cell serlen = get_crypto_pointer(&serial, ser_addr);
+
+                    if (serlen != 9)
+                    	fprintf(stderr, "serial buf not 9 bytes.");
+                    else
+                    {
+                        status = atcab_read_serial_number(serial);
+                        if (status != ATCA_SUCCESS)
+                            fprintf(stderr, "atcab_read_serial_number() failed: %02x\r\n", status);
+                    } }
+	            break;
+
 		default:
 			printf("unhandled syscall %d\n", id);
 			break;

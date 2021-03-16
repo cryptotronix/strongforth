@@ -25,6 +25,7 @@
 : setpub  ( slot pubkey -- )		142 sys ;
 : ecdh    ( pubkey prislot sharsec -- )	143 sys ;
 : shstat  ( -- status )			144 sys ;
+: getser  ( serial -- )			145 sys ;
 
 
 ( dictionary access. These are shortcuts through the primitive operations are !!, @@ and ,, )
@@ -115,6 +116,7 @@ var sig 64 1 + allot
 var random 32 1 + allot
 var digest 32 1 + allot
 var sharsec 32 1 + allot
+var serial 9 1 + allot
 
 ( setting size byte )
 64 pubkey !u8
@@ -122,6 +124,7 @@ var sharsec 32 1 + allot
 32 random !u8
 32 digest !u8
 32 sharsec !u8
+9 serial !u8
 
 ." Welcome to strongForth, " here . ." bytes used" cr ;
 
