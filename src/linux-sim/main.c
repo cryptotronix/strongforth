@@ -32,6 +32,8 @@
 
 
 #define HYDRO_CONTEXT "strongfo"
+#define HYDRO_MLEN (28)
+#define HYDRO_CLEN (HYDRO_MLEN + hydro_secretbox_HEADERBYTES)
 
 zf_addr B32_INPUT = 0;
 
@@ -366,6 +368,60 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 
 
         sw_sha256_update(&g_sha256_ctx, p, p_len);
+
+    }
+        break;
+    case ZF_SYSCALL_USER + 43: {
+
+        uint8_t *key;
+        int l = get_crypto_pointer(&key, zf_pop());
+        assert (hydro_secretbox_KEYBYTES == l);
+
+        uint8_t *iv;
+        l = get_crypto_pointer(&iv, zf_pop());
+        assert (32 == l);
+
+        int msg_id = zf_pop();
+
+        uint8_t *m_;
+        int mlen = get_crypto_pointer(&m_, zf_pop());
+        assert (HYDRO_MLEN == mlen);
+
+        uint8_t *c;
+        l = get_crypto_pointer(&c, zf_pop());
+        assert (HYDRO_CLEN == l);
+
+        int rc = hydro_secretbox_encrypt_iv(c, m_, mlen, msg_id, HYDRO_CONTEXT, key, iv);
+        assert (0==rc);
+    }
+        break;
+
+    case ZF_SYSCALL_USER + 44: {
+
+        uint8_t *key;
+        int l = get_crypto_pointer(&key, zf_pop());
+        assert (hydro_secretbox_KEYBYTES == l);
+
+        int msg_id = zf_pop();
+
+        uint8_t *m_;
+        int mlen = get_crypto_pointer(&m_, zf_pop());
+        assert (HYDRO_MLEN == mlen);
+
+        uint8_t *c;
+        l = get_crypto_pointer(&c, zf_pop());
+        assert (HYDRO_CLEN == l);
+
+        int rc = hydro_secretbox_decrypt(m_, c, HYDRO_CLEN, msg_id, HYDRO_CONTEXT, key);
+
+        if (0 == rc)
+        {
+            zf_push (~0);
+        }
+        else
+        {
+            zf_push (0);
+        }
 
     }
         break;

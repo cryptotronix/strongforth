@@ -35,7 +35,7 @@
 : sha256u  ( buffer -- ) 169 sys ;
 : sha256f  ( digest -- ) 170 sys ;
 : hydroe ( ciphertext message msgid iv key -- ) 171 sys ;
-: hydrod ( ciphertext message msgid key -- flag ) 172 sys;
+: hydrod ( ciphertext message msgid key -- flag ) 172 sys ;
 
 
 ( dictionary access. These are shortcuts through the primitive operations are !!, @@ and ,, )
@@ -130,6 +130,11 @@ var prikey 32 1 + allot
 var sharsec 32 1 + allot
 var serial 9 1 + allot
 
+var ctext 64 1 + allot
+var ptext 28 1 + allot
+var key 32 1 + allot
+ 
+
 ( setting size byte )
 64 pubkey !u8
 64 sig !u8
@@ -138,6 +143,10 @@ var serial 9 1 + allot
 32 prikey !u8
 32 sharsec !u8
 9 serial !u8
+
+ 64 ctext !u8
+ 28 ptext !u8
+ 32 key !u8
 
 ( methods for handling the dictionary )
 
