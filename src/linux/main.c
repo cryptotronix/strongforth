@@ -348,15 +348,15 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 
                 /* ATCA ECDH */
 		case ZF_SYSCALL_USER + 15: {
-		    uint8_t *pubkey;
-                    zf_addr pk_addr = zf_pop();
-		    uint8_t pklen = get_crypto_pointer(&pubkey, pk_addr);
-
-                    zf_cell pub_key_id = zf_pop();
-
                     uint8_t *sharsec;
                     zf_addr shsc_addr = zf_pop();
                     zf_cell shsclen = get_crypto_pointer(&sharsec, shsc_addr);
+
+                    zf_cell pri_key_id = zf_pop();
+
+		    uint8_t *pubkey;
+                    zf_addr pk_addr = zf_pop();
+		    uint8_t pklen = get_crypto_pointer(&pubkey, pk_addr);
 
                     if (pklen != 64)
                     	fprintf(stderr, "pubkey buf not 64 bytes.");
@@ -364,9 +364,30 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
                     	fprintf(stderr, "sharsec buf not 32 bytes.");
                     else
                     {
-                        status = atcab_ecdh(pub_key_id, pubkey, sharsec);
+                        status = atcab_ecdh(pri_key_id, pubkey, sharsec);
                         if (status != ATCA_SUCCESS)
-                            fprintf(stderr, "atcab_verify_extern() failed: %02x\r\n", status);
+                            fprintf(stderr, "atcab_ecdh() failed: %02x\r\n", status);
+                    } }
+	            break;
+
+                /* GET STRONGFORTH STATUS */
+		case ZF_SYSCALL_USER + 16:
+		    zf_push(strongheld_status_get());
+	            break;
+
+                /* ATCA GET SERIAL */
+		case ZF_SYSCALL_USER + 17: {
+                    uint8_t *serial;
+                    zf_addr ser_addr = zf_pop();
+                    zf_cell serlen = get_crypto_pointer(&serial, ser_addr);
+
+                    if (serlen != 9)
+                    	fprintf(stderr, "serial buf not 9 bytes.");
+                    else
+                    {
+                        status = atcab_read_serial_number(serial);
+                        if (status != ATCA_SUCCESS)
+                            fprintf(stderr, "atcab_read_serial_number() failed: %02x\r\n", status);
                     } }
 	            break;
 
