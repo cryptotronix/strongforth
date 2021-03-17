@@ -1,6 +1,10 @@
-
 BIN	:= zforth
-SRC	:= main.c zforth.c base32.c uECC.c
+SRC	:= \
+	main.c \
+	zforth.c \
+	base32.c \
+	uECC.c \
+	hydrogen.c
 
 OBJS    := $(subst .c,.o, $(SRC))
 DEPS    := $(subst .c,.d, $(SRC))
@@ -9,6 +13,7 @@ CC	:= $(CROSS)gcc
 
 VPATH   := ../zforth
 CFLAGS	+= -I. -I../zforth -I/usr/lib/cryptoauthlib -I/usr/include/cryptoauthlib
+
 #CFLAGS  += -Os -g -std=c89 -ansi -pedantic -MMD
 CFLAGS  += -fsanitize=address -Wall -Wextra -Werror -Wno-unused-parameter -Wno-clobbered -Wno-unused-result
 LDFLAGS	+= -fsanitize=address -g
@@ -32,4 +37,3 @@ lint:
 		$(SRC)
 
 -include $(DEPS)
-
