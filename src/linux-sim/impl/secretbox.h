@@ -94,7 +94,7 @@ hydro_secretbox_final(uint8_t *buf, const uint8_t key[hydro_secretbox_KEYBYTES],
     gimli_core_u8(buf, tag);
 }
 
-static int
+int
 hydro_secretbox_encrypt_iv(uint8_t *c, const void *m_, size_t mlen, uint64_t msg_id,
                            const char    ctx[hydro_secretbox_CONTEXTBYTES],
                            const uint8_t key[hydro_secretbox_KEYBYTES],

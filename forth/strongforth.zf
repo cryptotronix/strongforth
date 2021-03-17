@@ -34,7 +34,8 @@
 : sha256i  ( -- ) 168 sys ;
 : sha256u  ( buffer -- ) 169 sys ;
 : sha256f  ( digest -- ) 170 sys ;
-
+: hydroe ( ciphertext message msgid iv key -- ) 171 sys ;
+: hydrod ( ciphertext message msgid key -- flag ) 172 sys;
 
 
 ( dictionary access. These are shortcuts through the primitive operations are !!, @@ and ,, )

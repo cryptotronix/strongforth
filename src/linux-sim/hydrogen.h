@@ -90,6 +90,12 @@ int hydro_hash_hash(uint8_t *out, size_t out_len, const void *in_, size_t in_len
 
 void hydro_secretbox_keygen(uint8_t key[hydro_secretbox_KEYBYTES]);
 
+int
+hydro_secretbox_encrypt_iv(uint8_t *c, const void *m_, size_t mlen, uint64_t msg_id,
+                           const char    ctx[hydro_secretbox_CONTEXTBYTES],
+                           const uint8_t key[hydro_secretbox_KEYBYTES],
+                           const uint8_t iv[20]);
+
 int hydro_secretbox_encrypt(uint8_t *c, const void *m_, size_t mlen, uint64_t msg_id,
                             const char    ctx[hydro_secretbox_CONTEXTBYTES],
                             const uint8_t key[hydro_secretbox_KEYBYTES]);
