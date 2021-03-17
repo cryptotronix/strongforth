@@ -31,6 +31,11 @@
 : genkey  ( prikey pubkey -- ) 158 sys ;
 
 
+: sha256i  ( -- ) 168 sys ;
+: sha256u  ( buffer -- ) 169 sys ;
+: sha256f  ( digest -- ) 170 sys ;
+
+
 
 ( dictionary access. These are shortcuts through the primitive operations are !!, @@ and ,, )
 

@@ -35,6 +35,8 @@
 
 zf_addr B32_INPUT = 0;
 
+sw_sha256_ctx g_sha256_ctx;
+
 static uint8_t get_crypto_pointer(uint8_t **buf, zf_addr addr)
 {
     uint8_t len = 0;
@@ -321,6 +323,7 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
         assert(1 == rc);
     }
         break;
+
     case ZF_SYSCALL_USER + 30:
     {
 
@@ -335,6 +338,37 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
         assert(1 == rc);
     }
     break;
+
+    /*  SHA256 INIT */
+    case ZF_SYSCALL_USER + 40: {
+        sw_sha256_init(&g_sha256_ctx);
+    }
+        break;
+
+        /*  SHA256 UPDATE */
+    case ZF_SYSCALL_USER + 41: {
+        uint8_t *p;
+        int p_len = get_crypto_pointer(&p, zf_pop());
+
+        sw_sha256_update(&g_sha256_ctx, p, p_len);
+
+    }
+        break;
+
+        /*  SHA256 FINAL */
+    case ZF_SYSCALL_USER + 42: {
+
+        uint8_t *p;
+        int p_len = get_crypto_pointer(&p, zf_pop());
+        assert (32 == p_len);
+
+        sw_sha256_final(&g_sha256_ctx, p);
+
+
+        sw_sha256_update(&g_sha256_ctx, p, p_len);
+
+    }
+        break;
 
     default:
         printf("unhandled syscall %d\n", id);
@@ -421,7 +455,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
-
+    sw_sha256_init(&g_sha256_ctx);
     /* Parse command line options */
 
     while((c = getopt(argc, argv, "hl:t")) != -1) {
