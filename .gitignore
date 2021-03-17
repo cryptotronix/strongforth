@@ -6,3 +6,4 @@ go
 src/linux/zforth
 zforth.save
 .zforth.hist
+/src/linux-sim/zforth

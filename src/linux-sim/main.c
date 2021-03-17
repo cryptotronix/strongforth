@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdarg.h>
 #include <limits.h>
@@ -21,9 +20,14 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include "hydrogen.h"
+
 #include "zforth.h"
 #include "base32.h"
 #include "uECC.h"
+
+
+#define HYDRO_CONTEXT "strongfo"
 
 zf_addr B32_INPUT = 0;
 
@@ -134,7 +138,7 @@ static void load(const char *fname)
 
 zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 {
-       
+
 	switch((int)id) {
 
 
@@ -265,7 +269,7 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 				break;
 
                 /* ATCA ECDSA VERIFY */
-		case ZF_SYSCALL_USER + 12: { 
+		case ZF_SYSCALL_USER + 12: {
 
 			uint8_t *sig;
 			int sig_len = get_crypto_pointer(&sig, zf_pop());
@@ -304,7 +308,7 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 			int prikey_len = get_crypto_pointer(&prikey, zf_pop());
 			uint8_t *pubkey;
 			int pubkey_len = get_crypto_pointer(&pubkey, zf_pop());
-			
+
 			assert(pubkey_len == 64);
 			assert(prikey_len == 32);
 			assert(sharedsec_len == 32);
@@ -408,6 +412,12 @@ int main(int argc, char **argv)
 	int line = 0;
 	const char *fname_load = NULL;
 
+        if (hydro_init() != 0)
+        {
+            return -1;
+        }
+
+
 	/* Parse command line options */
 
 	while((c = getopt(argc, argv, "hl:t")) != -1) {
@@ -492,4 +502,3 @@ int main(int argc, char **argv)
 /*
  * End
  */
-
