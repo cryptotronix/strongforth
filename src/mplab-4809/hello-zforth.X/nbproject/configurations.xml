@@ -1,11 +1,123 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configurationDescriptor version="65">
   <logicalFolder name="root" displayName="root" projectFiles="true">
+    <logicalFolder name="cryptoauthlib-3.2.5"
+                   displayName="cryptoauthlib-3.2.5"
+                   projectFiles="true">
+      <logicalFolder name="atcacert" displayName="atcacert" projectFiles="true">
+        <itemPath>cryptoauthlib-3.2.5/atcacert/atcacert.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/atcacert/atcacert_def.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/atcacert/atcacert_client.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/atcacert/atcacert_host_sw.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/atcacert/atcacert_der.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/atcacert/atcacert_der.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/atcacert/atcacert_pem.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/atcacert/atcacert_pem.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/atcacert/atcacert_date.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/atcacert/atcacert_host_hw.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/atcacert/atcacert_host_hw.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/atcacert/atcacert_def.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/atcacert/atcacert_host_sw.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/atcacert/atcacert_date.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/atcacert/atcacert_client.h</itemPath>
+      </logicalFolder>
+      <logicalFolder name="calib" displayName="calib" projectFiles="true">
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_checkmac.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_verify.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_ecdh.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_counter.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_read.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_sign.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_selftest.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_hmac.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_aes.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_genkey.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_nonce.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_execution.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_execution.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_sha.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_basic.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_random.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_derivekey.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_aes_gcm.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_write.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_command.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_updateextra.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_basic.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_aes_gcm.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_info.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_gendig.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_lock.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_mac.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_command.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_kdf.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_secureboot.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/calib/calib_privwrite.c</itemPath>
+      </logicalFolder>
+      <logicalFolder name="crypto" displayName="crypto" projectFiles="true">
+        <logicalFolder name="hashes" displayName="hashes" projectFiles="true">
+          <itemPath>cryptoauthlib-3.2.5/crypto/hashes/sha2_routines.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/crypto/hashes/sha1_routines.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/crypto/hashes/sha1_routines.h</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/crypto/hashes/sha2_routines.h</itemPath>
+        </logicalFolder>
+        <itemPath>cryptoauthlib-3.2.5/crypto/atca_crypto_hw_aes_cbcmac.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/crypto/atca_crypto_hw_aes_cbc.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/crypto/atca_crypto_sw.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/crypto/atca_crypto_sw_rand.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/crypto/atca_crypto_hw_aes_ccm.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/crypto/atca_crypto_sw_sha1.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/crypto/atca_crypto_hw_aes_cmac.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/crypto/atca_crypto_sw_ecdsa.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/crypto/atca_crypto_sw_sha1.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/crypto/atca_crypto_sw_sha2.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/crypto/atca_crypto_sw_sha2.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/crypto/atca_crypto_sw_ecdsa.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/crypto/atca_crypto_sw_rand.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/crypto/atca_crypto_hw_aes_ctr.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/crypto/atca_crypto_hw_aes.h</itemPath>
+      </logicalFolder>
+      <logicalFolder name="hal" displayName="hal" projectFiles="true">
+        <itemPath>cryptoauthlib-3.2.5/hal/atca_hal.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/hal/atca_hal.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/hal/atca_start_iface.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/hal/atca_start_config.h</itemPath>
+      </logicalFolder>
+      <logicalFolder name="host" displayName="host" projectFiles="true">
+        <itemPath>cryptoauthlib-3.2.5/host/atca_host.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/host/atca_host.h</itemPath>
+      </logicalFolder>
+      <itemPath>cryptoauthlib-3.2.5/atca_command.h</itemPath>
+      <itemPath>cryptoauthlib-3.2.5/atca_basic.h</itemPath>
+      <itemPath>cryptoauthlib-3.2.5/atca_cfgs.h</itemPath>
+      <itemPath>cryptoauthlib-3.2.5/atca_iface.h</itemPath>
+      <itemPath>cryptoauthlib-3.2.5/atca_command.c</itemPath>
+      <itemPath>cryptoauthlib-3.2.5/atca_config.h</itemPath>
+      <itemPath>cryptoauthlib-3.2.5/atca_devtypes.h</itemPath>
+      <itemPath>cryptoauthlib-3.2.5/atca_utils_sizes.c</itemPath>
+      <itemPath>cryptoauthlib-3.2.5/atca_version.h</itemPath>
+      <itemPath>cryptoauthlib-3.2.5/atca_iface.c</itemPath>
+      <itemPath>cryptoauthlib-3.2.5/atca_bool.h</itemPath>
+      <itemPath>cryptoauthlib-3.2.5/atca_debug.h</itemPath>
+      <itemPath>cryptoauthlib-3.2.5/atca_device.h</itemPath>
+      <itemPath>cryptoauthlib-3.2.5/atca_helpers.c</itemPath>
+      <itemPath>cryptoauthlib-3.2.5/atca_status.h</itemPath>
+      <itemPath>cryptoauthlib-3.2.5/atca_basic.c</itemPath>
+      <itemPath>cryptoauthlib-3.2.5/atca_helpers.h</itemPath>
+      <itemPath>cryptoauthlib-3.2.5/cryptoauthlib.h</itemPath>
+      <itemPath>cryptoauthlib-3.2.5/atca_cfgs.c</itemPath>
+      <itemPath>cryptoauthlib-3.2.5/atca_device.c</itemPath>
+      <itemPath>cryptoauthlib-3.2.5/atca_debug.c</itemPath>
+      <itemPath>cryptoauthlib-3.2.5/atca_compiler.h</itemPath>
+    </logicalFolder>
     <logicalFolder name="HeaderFiles"
                    displayName="Header Files"
                    projectFiles="true">
       <itemPath>zforth.h</itemPath>
       <itemPath>zfconf.h</itemPath>
+      <itemPath>protected_io.h</itemPath>
+      <itemPath>gas.h</itemPath>
+      <itemPath>twi0_master.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
                    displayName="Linker Files"
@@ -16,6 +128,10 @@
                    projectFiles="true">
       <itemPath>main.c</itemPath>
       <itemPath>zforth.c</itemPath>
+      <itemPath>hal_avr8_i2c.c</itemPath>
+      <itemPath>hal_avr8_timer.c</itemPath>
+      <itemPath>protected_io.s</itemPath>
+      <itemPath>twi0_master.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -113,7 +229,7 @@
         <property key="call-prologues" value="false"/>
         <property key="default-bitfield-type" value="true"/>
         <property key="default-char-type" value="true"/>
-        <property key="extra-include-directories" value=""/>
+        <property key="extra-include-directories" value="cryptoauthlib-3.2.5"/>
         <property key="extra-warnings" value="false"/>
         <property key="garbage-collect-data" value="true"/>
         <property key="garbage-collect-functions" value="true"/>
@@ -123,7 +239,7 @@
         <property key="no-system-directories" value="false"/>
         <property key="optimization-level" value="-O1"/>
         <property key="pack-struct" value="true"/>
-        <property key="preprocessor-macros" value=""/>
+        <property key="preprocessor-macros" value="F_CPU=20000000"/>
         <property key="preprocessor-macros-undefined" value=""/>
         <property key="save-temps" value="false"/>
         <property key="short-calls" value="false"/>
@@ -136,7 +252,8 @@
         <property key="verbose" value="false"/>
       </AVR-GCC>
       <AVR-Global>
-        <property key="common-include-directories" value=""/>
+        <property key="common-include-directories"
+                  value="mcc_generated_files;mcc_generated_files/CryptoAuthenticationLibrary"/>
         <property key="eep" value="false"/>
         <property key="external-ram-check" value="false"/>
         <property key="hex" value="true"/>
