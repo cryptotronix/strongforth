@@ -11,22 +11,24 @@
 
 ( custom system calls )
 
-: dtell   ( reg -- )			132 sys ;
+: dtell   ( reg -- )					132 sys ;
 ( when b32in is called, next number pushed is interpreted as base32 and puts addr on stack )
-: b32in   ( reg -- )			133 sys ;
-: b32tell ( reg -- )			134 sys ;
-: init    ( -- )			135 sys ;
-: getrand ( random -- )			136 sys ;
-: counter ( -- curval )			137 sys ;
-: cntrinc ( -- curval )			138 sys ;
-: sign    ( digest prislot sig -- )	139 sys ;
-: verify  ( digest pubslot sig -- pass)	140 sys ;
-: getpub  ( slot pubkey -- )		141 sys ;
-: setpub  ( slot pubkey -- )		142 sys ;
-: ecdh    ( pubkey prislot sharsec -- )	143 sys ;
-: shstat  ( -- status )			144 sys ;
-: getser  ( serial -- )			145 sys ;
-
+: b32in   ( reg -- )					133 sys ;
+: b32tell ( reg -- )					134 sys ;
+: init    ( -- )					135 sys ;
+: getrand ( random -- )					136 sys ;
+: counter ( -- curval )					137 sys ;
+: cntrinc ( -- curval )					138 sys ;
+: sign    ( digest prislot sig -- )			139 sys ;
+: verify  ( digest pubslot sig -- pass)			140 sys ;
+: getpub  ( slot pubkey -- )				141 sys ;
+: setpub  ( slot pubkey -- )				142 sys ;
+: ecdh    ( pubkey prislot sharsec -- )			143 sys ;
+: shstat  ( -- status )					144 sys ;
+: getser  ( serial -- )					145 sys ;
+: rotprep ( digest serial pubkey -- slotb keyb)		146 sys ;
+: rotate  ( valid verdata gendata pubslot sig -- ver)	147 sys ;
+: test    148 sys ;
 
 : genkey  ( prikey pubkey -- ) 158 sys ;
 
@@ -36,6 +38,7 @@
 : sha256f  ( digest -- ) 170 sys ;
 : hydroe ( ciphertext message msgid iv key -- ) 171 sys ;
 : hydrod ( ciphertext message msgid key -- flag ) 172 sys ;
+: srotpre ( valid nonce pubkey serial slotb keyb gendata verdata digest -- ) 173 sys ;
 
 
 ( dictionary access. These are shortcuts through the primitive operations are !!, @@ and ,, )
@@ -129,11 +132,13 @@ var prikey 32 1 + allot
 
 var sharsec 32 1 + allot
 var serial 9 1 + allot
+var verdata 19 1 + allot
+var gendata 3 1 + allot
 
 var ctext 64 1 + allot
 var ptext 28 1 + allot
 var key 32 1 + allot
- 
+
 
 ( setting size byte )
 64 pubkey !u8
@@ -143,6 +148,8 @@ var key 32 1 + allot
 32 prikey !u8
 32 sharsec !u8
 9 serial !u8
+19 verdata !u8
+3 gendata !u8
 
  64 ctext !u8
  28 ptext !u8

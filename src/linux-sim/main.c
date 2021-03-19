@@ -9,7 +9,7 @@
 #include <getopt.h>
 #include <math.h>
 
-#include <cryptoauthlib/cryptoauthlib.h>
+#include <cryptoauthlib/host/atca_host.h>
 
 #ifdef USE_READLINE
 #include <readline/readline.h>
@@ -423,6 +423,98 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
             zf_push (0);
         }
 
+    }
+        break;
+
+    /* SERVER'S KEY ROTATION PREP */
+    case ZF_SYSCALL_USER + 45: {
+        uint8_t *digest;
+        int digest_len = get_crypto_pointer(&digest, zf_pop());
+
+        uint8_t *verify_other_data;
+        int verdata_len = get_crypto_pointer(&verify_other_data, zf_pop());
+
+        uint8_t *gen_key_other_data;
+        int gendata_len = get_crypto_pointer(&gen_key_other_data, zf_pop());
+
+	uint8_t key_bit = zf_pop();
+	uint8_t slot_bit = zf_pop();
+
+        uint8_t *serial;
+        int serial_len = get_crypto_pointer(&serial, zf_pop());
+
+        uint8_t *pubkey;
+        int pubkey_len = get_crypto_pointer(&pubkey, zf_pop());
+
+        uint8_t *nonce;
+        int nonce_len = get_crypto_pointer(&nonce, zf_pop());
+
+	zf_cell validate = zf_pop();
+
+	atca_gen_key_in_out_t gen_key_params;
+	atca_sign_internal_in_out_t sign_params;
+    	uint8_t validation_msg[55];
+        atca_temp_key_t temp_key;
+	atca_nonce_in_out_t nonce_params;
+	uint8_t rand_out[ATCA_KEY_SIZE];
+        ATCA_STATUS status = ATCA_GEN_FAIL;
+
+        assert(digest_len == 32);
+        assert(verdata_len == 19);
+        assert(gendata_len == 3);
+        assert(serial_len == 9);
+        assert(pubkey_len == 64);
+        assert(nonce_len == 32);
+
+	if (validate == 0)
+		validate = 1;
+	else if (validate == -1)
+		validate = 0;
+
+        memset(&temp_key, 0, sizeof(temp_key));
+        memset(&nonce_params, 0, sizeof(nonce_params));
+        nonce_params.mode = NONCE_MODE_PASSTHROUGH;
+        nonce_params.zero = 0;
+        nonce_params.num_in = nonce;
+        nonce_params.rand_out = rand_out;
+        nonce_params.temp_key = &temp_key;
+
+        status = atcah_nonce(&nonce_params);
+        if (status != ATCA_SUCCESS)
+		fprintf(stderr, "atcah_nonce() failed: %02x\r\n", status);
+
+	if (status == ATCA_SUCCESS)
+	{
+		memset(gen_key_other_data, 0, 3);
+        	gen_key_params.mode = GENKEY_MODE_PUBKEY_DIGEST;
+        	gen_key_params.key_id = 14;
+        	gen_key_params.public_key = pubkey;
+        	gen_key_params.public_key_size = pubkey_len;
+        	gen_key_params.other_data = gen_key_other_data;
+        	gen_key_params.sn = serial;
+        	gen_key_params.temp_key = &temp_key;
+
+        	status = atcah_gen_key_msg(&gen_key_params);
+        	if (status != ATCA_SUCCESS)
+			fprintf(stderr, "atcah_gen_key_msg() failed: %02x\r\n", status);
+	}
+	if (status == ATCA_SUCCESS)
+	{
+        	memset(&sign_params, 0, sizeof(sign_params));
+       		sign_params.sn = serial;
+        	sign_params.verify_other_data = verify_other_data;
+        	sign_params.key_id = 13;
+        	sign_params.slot_config = key_bit;
+        	sign_params.key_config = slot_bit;
+        	sign_params.for_invalidate = !validate;
+        	sign_params.message = validation_msg;
+        	sign_params.digest = digest;
+        	sign_params.temp_key = &temp_key;
+
+        	status = atcah_sign_internal_msg(ATECC608A, &sign_params);
+        	if (status != ATCA_SUCCESS)
+			fprintf(stderr, "atcah_sign_internal_msg() failed: %02x\r\n", status);
+	}
     }
         break;
 
