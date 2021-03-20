@@ -26,10 +26,9 @@
 : ecdh    ( pubkey prislot sharsec -- )			143 sys ;
 : shstat  ( -- status )					144 sys ;
 : getser  ( serial -- )					145 sys ;
-: rotprep ( digest serial pubkey -- slotb keyb)		146 sys ;
-: rotate  ( valid verdata gendata sig -- ver)		147 sys ;
+: rotprep ( pubkey -- slotb keyb)			146 sys ;
+: rotate  ( valid nonce verdata gendata sig -- ver)	147 sys ;
 : readpub  ( slot pubkey -- )				148 sys ;
-: test    149 sys ;
 
 : genkey  ( prikey pubkey -- ) 158 sys ;
 
@@ -39,7 +38,7 @@
 : sha256f  ( digest -- ) 170 sys ;
 : hydroe ( ciphertext message msgid iv key -- ) 171 sys ;
 : hydrod ( ciphertext message msgid key -- flag ) 172 sys ;
-: srotpre ( valid nonce pubkey serial slotb keyb gendata verdata digest -- ) 173 sys ;
+: srotpre ( valid nonce pubkey serial slotconf keyconf gendata verdata digest -- ) 173 sys ;
 
 
 ( dictionary access. These are shortcuts through the primitive operations are !!, @@ and ,, )
