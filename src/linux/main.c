@@ -27,8 +27,8 @@ ATCAIfaceCfg cfg_ateccx08a_kithid_default = {
     .iface_type                  = ATCA_HID_IFACE,
     .devtype                     = ATECC608,
     {
-        .atcahid.dev_interface   = ATCA_KIT_AUTO_IFACE,
-        .atcahid.dev_identity    = 0,
+        .atcahid.dev_interface   = ATCA_KIT_I2C_IFACE,
+        .atcahid.dev_identity    = 0x6C,
         .atcahid.idx             = 0,
         .atcahid.vid             = 0x03EB,
         .atcahid.pid             = 0x2312,
@@ -409,9 +409,14 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
                     zf_addr dig_addr = zf_pop();
                     zf_cell diglen = get_crypto_pointer(&digest, dig_addr);
 
-		    uint8_t slot_byte = 0;
-		    uint8_t key_byte = 0;
+		    uint16_t slot_config = 0;
+		    uint16_t key_config = 0;
 
+		    /* SET VALUE FOR TESTING */
+	   	    uint8_t validated_nonce[] = {
+0xD9, 0x27, 0x4A, 0xBA, 0xD4, 0xCD, 0xC1, 0xCA, 0xF4, 0x5A, 0x0E, 0x93, 0x3C, 0x3E, 0x58, 0x65,
+0x60, 0xC1, 0xA5, 0xA0, 0xF3, 0x68, 0xA2, 0xC7, 0x1C, 0xA3, 0xCB, 0x6B, 0x92, 0x5B, 0x9E, 0x95,
+};
                     if (serlen != 9)
                     	fprintf(stderr, "serial buf not 9 bytes.");
 		    else if (diglen != 32)
@@ -420,26 +425,23 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
                     	fprintf(stderr, "pubkey buf not 64 bytes.");
                     else
                     {
-                        status = atcab_nonce(digest);
+                        status = atcab_nonce(validated_nonce);
                         if (status != ATCA_SUCCESS)
                             fprintf(stderr, "atcab_nonce() failed: %02x\r\n", status);
 
 			if (status == ATCA_SUCCESS)
 			{
                         	status = atcab_read_pubkey(14, pubkey);
-                        	if (status == ATCA_EXECUTION_ERROR)
-				{
-                            		fprintf(stderr, "did not retrieve pubkey, is slot 14 readable?");
-					status == ATCA_SUCCESS;
-				}
-				else if (status != ATCA_SUCCESS)
+				if (status != ATCA_SUCCESS)
                             		fprintf(stderr, "atcab_read_pubkey() failed: %02x\r\n",
 							status);
 			}
 			if (status == ATCA_SUCCESS)
 			{
                         	status = atcab_read_bytes_zone(ATCA_ZONE_CONFIG, -1,
-						48, &slot_byte, 1);
+						48, (uint8_t*) &slot_config, 1);
+                        	status = atcab_read_bytes_zone(ATCA_ZONE_CONFIG, -1,
+						49, (uint8_t*) &slot_config + 1, 1);
                         	if (status != ATCA_SUCCESS)
                             		fprintf(stderr, "atcab_read_bytes_zone() failed: %02x\r\n",
 							status);
@@ -447,15 +449,17 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 			if (status == ATCA_SUCCESS)
 			{
                         	status = atcab_read_bytes_zone(ATCA_ZONE_CONFIG, -1,
-						124, &key_byte, 1);
+						124, (uint8_t*) &key_config, 1);
+                        	status = atcab_read_bytes_zone(ATCA_ZONE_CONFIG, -1,
+						125, (uint8_t*) &key_config + 1, 1);
                         	if (status != ATCA_SUCCESS)
                             		fprintf(stderr, "atcab_read_bytes_zone() failed: %02x\r\n",
 							status);
 			}
 			if (status == ATCA_SUCCESS)
 			{
-				zf_push(slot_byte);
-				zf_push(key_byte);
+				zf_push(slot_config);
+				zf_push(key_config);
 			}
                     } }
 	            break;
@@ -466,8 +470,6 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
                     uint8_t *sig;
                     zf_addr sig_addr = zf_pop();
                     zf_cell siglen = get_crypto_pointer(&sig, sig_addr);
-
-                    zf_cell pub_key_id = zf_pop();
 
 		    /* get genkey data */
                     uint8_t *gendata;
@@ -483,24 +485,24 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 
 		    bool is_verified = -1;
 
-		    if (siglen != 32)
-                    	fprintf(stderr, "sig buf not 32 bytes.");
+		    if (siglen != 64)
+                    	fprintf(stderr, "sig buf not 64 bytes.");
 		    else if (verlen != 19)
                     	fprintf(stderr, "verdata buf not 19 bytes.");
 		    else if (genlen != 3)
                     	fprintf(stderr, "gendata buf not 3 bytes.");
                     else
                     {
-			status = atcab_genkey_base(GENKEY_MODE_PUBKEY_DIGEST, 13, gendata, NULL);
+			status = atcab_genkey_base(GENKEY_MODE_PUBKEY_DIGEST, 14, gendata, NULL);
 			if (status != ATCA_SUCCESS)
-                            fprintf(stderr, "atcab_verify_(in)validate() failed: %02x\r\n", status);
+                            fprintf(stderr, "atcab_genkey_base() failed: %02x\r\n", status);
 			else
 			{
 				if (validate == 0)
-					status = atcab_verify_validate(pub_key_id,
+					status = atcab_verify_validate(14,
 							sig, verdata, &is_verified);
 				else if (validate == -1)
-					status = atcab_verify_invalidate(pub_key_id,
+					status = atcab_verify_invalidate(14,
 							sig, verdata, &is_verified);
 				else
 					status = ATCA_GEN_FAIL;
@@ -518,11 +520,56 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 		    } }
 	            break;
 
-                /* TEST */
+                /* READ PUBKEY SLOT */
 		case ZF_SYSCALL_USER + 20: {
-		    uint8_t a = 20 + 14 * 2;
-		    printf("\n%i\n", a);
-                    }
+		    uint8_t *pubkey;
+                    zf_addr pk_addr = zf_pop();
+		    uint8_t pklen = get_crypto_pointer(&pubkey, pk_addr);
+
+		    if (pklen != 64)
+                    	fprintf(stderr, "pubkey buf not 64 bytes.");
+		    else
+		    {
+		    	status = atcab_read_pubkey(zf_pop(), pubkey);
+		    	if (status != ATCA_SUCCESS)
+                		fprintf(stderr, "atcab_read_pubkey() failed: %02x\r\n",
+						status);
+		    } }
+	            break;
+
+                /* TEST */
+		case ZF_SYSCALL_USER + 21: {
+
+		    uint8_t a = 1;
+		    uint8_t b = 2;
+		    uint16_t c = a | b << 8;
+		    printf("\n%u\n", c);
+		    uint16_t d;
+		    memset((uint8_t*)&d, a, 1);
+		    memset((uint8_t*)&d + 1, b, 1);
+		    printf("\n%u\n", d);
+
+		    uint8_t config[128];
+		    uint16_t rotating_key_slot = 14;
+        	    if ((status = atcab_read_config_zone(config)) != ATCA_SUCCESS)
+			    break;
+		    uint16_t slot_config = (config[20 + rotating_key_slot * 2]   | config[21 + rotating_key_slot * 2] << 8);
+        	    uint16_t key_config = (config[96 + rotating_key_slot * 2] | config[97 + rotating_key_slot * 2] << 8);
+		    printf("\n%u\n", slot_config);
+		    printf("\n%u\n", key_config);
+
+		    uint32_t valid;
+		    status = atcab_read_zone(ATCA_ZONE_DATA, rotating_key_slot, 0, 0, (uint8_t*)&valid, 4);
+		    if (status != ATCA_SUCCESS)
+                    	fprintf(stderr, "atcab_verify_(in)validate() failed: %02x\r\n", status);
+	            if (status == ATCA_SUCCESS)
+		    	printf("\n%u\n", valid);
+    		    uint8_t validated_signature[] = {
+			  0x28, 0x4e, 0x92, 0xa8, 0xc7, 0x7d, 0x28, 0x8c, 0x4b, 0xec,
+			  0x72, 0x35, 0x6a, 0x6f, 0xb3, 0xfa, 0xab, 0x6c, 0x8b, 0x7c,
+			  0x31, 0xc4, 0x2f, 0xd4, 0xca, 0xe8, 0x8b, 0x9a, 0x0b, 0x07, 0x33, 0x4b };
+    		    base32_emit(validated_signature, 32);
+		    }
 	            break;
 
 		default:

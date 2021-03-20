@@ -27,8 +27,9 @@
 : shstat  ( -- status )					144 sys ;
 : getser  ( serial -- )					145 sys ;
 : rotprep ( digest serial pubkey -- slotb keyb)		146 sys ;
-: rotate  ( valid verdata gendata pubslot sig -- ver)	147 sys ;
-: test    148 sys ;
+: rotate  ( valid verdata gendata sig -- ver)		147 sys ;
+: readpub  ( slot pubkey -- )				148 sys ;
+: test    149 sys ;
 
 : genkey  ( prikey pubkey -- ) 158 sys ;
 

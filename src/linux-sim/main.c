@@ -437,8 +437,8 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
         uint8_t *gen_key_other_data;
         int gendata_len = get_crypto_pointer(&gen_key_other_data, zf_pop());
 
-	uint8_t key_bit = zf_pop();
-	uint8_t slot_bit = zf_pop();
+	uint16_t key_bit = zf_pop();
+	uint16_t slot_bit = zf_pop();
 
         uint8_t *serial;
         int serial_len = get_crypto_pointer(&serial, zf_pop());
@@ -465,7 +465,10 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
         assert(serial_len == 9);
         assert(pubkey_len == 64);
         assert(nonce_len == 32);
-
+	uint8_t validated_nonce[] = {
+0xD9, 0x27, 0x4A, 0xBA, 0xD4, 0xCD, 0xC1, 0xCA, 0xF4, 0x5A, 0x0E, 0x93, 0x3C, 0x3E, 0x58, 0x65,
+0x60, 0xC1, 0xA5, 0xA0, 0xF3, 0x68, 0xA2, 0xC7, 0x1C, 0xA3, 0xCB, 0x6B, 0x92, 0x5B, 0x9E, 0x95,
+};
 	if (validate == 0)
 		validate = 1;
 	else if (validate == -1)
@@ -475,7 +478,7 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
         memset(&nonce_params, 0, sizeof(nonce_params));
         nonce_params.mode = NONCE_MODE_PASSTHROUGH;
         nonce_params.zero = 0;
-        nonce_params.num_in = nonce;
+        nonce_params.num_in = validated_nonce;
         nonce_params.rand_out = rand_out;
         nonce_params.temp_key = &temp_key;
 
@@ -514,6 +517,7 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
         	status = atcah_sign_internal_msg(ATECC608A, &sign_params);
         	if (status != ATCA_SUCCESS)
 			fprintf(stderr, "atcah_sign_internal_msg() failed: %02x\r\n", status);
+		base32_emit(validation_msg, 55);
 	}
     }
         break;
