@@ -57,6 +57,12 @@ void zf_push(zf_cell v);
 zf_cell zf_pop(void);
 zf_cell zf_pick(zf_addr n);
 
+void dict_get_bytes(zf_addr addr, void *buf, size_t len);
+zf_addr dict_put_bytes(zf_addr addr, const void *buf, size_t len);
+uint8_t *dict_get_pointer(zf_addr addr, size_t len);
+
+zf_cell strongheld_status_get();
+
 /* Host provides these functions */
 
 zf_input_state zf_host_sys(zf_syscall_id id, const char *last_word);

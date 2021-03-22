@@ -118,6 +118,7 @@
       <itemPath>protected_io.h</itemPath>
       <itemPath>gas.h</itemPath>
       <itemPath>twi0_master.h</itemPath>
+      <itemPath>base32.h</itemPath>
     </logicalFolder>
     <logicalFolder name="LinkerScript"
                    displayName="Linker Files"
@@ -132,6 +133,7 @@
       <itemPath>hal_avr8_timer.c</itemPath>
       <itemPath>protected_io.s</itemPath>
       <itemPath>twi0_master.c</itemPath>
+      <itemPath>base32.c</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -288,7 +290,7 @@
         <property key="communication.activationmode" value="nohv"/>
         <property key="communication.interface" value="updi"/>
         <property key="communication.speed" value="0.500"/>
-        <property key="debugoptions.useswbreakpoints" value="false"/>
+        <property key="debugoptions.useswbreakpoints" value="true"/>
         <property key="firmware.path"
                   value="Press to browse for a specific firmware version"/>
         <property key="firmware.toolpack"
