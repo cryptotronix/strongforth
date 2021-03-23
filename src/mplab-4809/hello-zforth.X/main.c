@@ -18,7 +18,38 @@
 #include "zforth.h"
 #include "base32.h"
 #include "cryptoauthlib.h"
-#include "hydrogen.h"
+//#include "hydrogen.h"
+
+//#define CONTEXT "Strongforth"
+//#define MESSAGE "Test"
+//#define MESSAGE_LEN 4
+//#define CIPHERTEXT_LEN (hydro_secretbox_HEADERBYTES + MESSAGE_LEN)
+
+//static uint8_t secret_key[hydro_secretbox_KEYBYTES] = {0};
+//static uint8_t ciphertext[CIPHERTEXT_LEN] = {0};
+
+#include "tweetnacl.h"
+
+static const uint8_t secret_key[32] = {
+    0x77, 0x07, 0x6d, 0x0a, 0x73, 0x18, 0xa5, 0x7d, 0x3c, 0x16, 0xc1,
+    0x72, 0x51, 0xb2, 0x66, 0x45, 0xdf, 0x4c, 0x2f, 0x87, 0xeb, 0xc0,
+    0x99, 0x2a, 0xb1, 0x77, 0xfb, 0xa5, 0x1d, 0xb9, 0x2c, 0x2a
+};
+
+static const uint8_t nonce[24] = { 
+    0x69, 0x69, 0x6e, 0xe9, 0x55, 0xb6,
+    0x2b, 0x73, 0xcd, 0x62, 0xbd, 0xa8,
+    0x75, 0xfc, 0x73, 0xd6, 0x82, 0x19,
+    0xe0, 0x03, 0x6b, 0x7a, 0x0b, 0x37
+};
+
+static const uint8_t message[36] = {
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 'T', 'e', 's', 't'
+};
+
+static uint8_t cipher[36];
 
 zf_addr B32_INPUT = 0;
 
@@ -38,14 +69,6 @@ static void uart_init(uint16_t baudrate);
 static int uart_tx(char c, FILE *f);
 static int uart_rx(FILE *);
 static FILE f = FDEV_SETUP_STREAM(uart_tx, uart_rx, _FDEV_SETUP_RW);
-
-#define CONTEXT "Strongforth"
-#define MESSAGE "Test"
-#define MESSAGE_LEN 4
-#define CIPHERTEXT_LEN (hydro_secretbox_HEADERBYTES + MESSAGE_LEN)
-
-static uint8_t secret_key[hydro_secretbox_KEYBYTES] = {0};
-static uint8_t ciphertext[CIPHERTEXT_LEN] = {0};
 
 static inline void ccp_write_io(void *addr, uint8_t value)
 {
@@ -529,41 +552,69 @@ int main(void)
     
     printf("Hello ZForth!\r\n");
 
-    if (0 != hydro_init())
+//    if (0 != hydro_init())
+//    {
+//        printf("Could not init libhydrogen!\r\n");
+//    }
+//    
+//    // test secretbox
+//    printf("Generating secretbox key...\r\n");
+//    hydro_secretbox_keygen(secret_key);
+//    printf("Key: ");
+//    for (int i = 0; i < hydro_secretbox_KEYBYTES; i++)
+//    {
+//        printf("%02x", secret_key[i]);
+//    }
+//    printf("\r\n");
+//    
+//    printf("Encrypting message: %s\r\n", MESSAGE);
+//    if (0 != hydro_secretbox_encrypt(ciphertext, MESSAGE, MESSAGE_LEN, 0, CONTEXT, secret_key))
+//    {
+//        printf("Could not hydro_secretbox_encrypt message!\r\n");
+//    }
+//    
+//    printf("Ciphertext: ");
+//    for (int i = 0; i < CIPHERTEXT_LEN; i++)
+//    {
+//        printf("%02x", ciphertext[i]);
+//    }
+//    printf("\r\n");
+//    
+//    printf("Decrypting...\r\n");
+//    char decrypted[MESSAGE_LEN] = {0};
+//    if (0 != hydro_secretbox_decrypt(decrypted, ciphertext, CIPHERTEXT_LEN, 0, CONTEXT, secret_key))
+//    {
+//        printf("Could not hydro_secretbox_decrypt ciphertext!\r\n");
+//    }
+//    printf("Decrypted: %s\r\n", decrypted);
+    
+    /* tweetnacl test */
+    printf("tweetnacl encrypting...\r\n");
+    if (0 != crypto_secretbox(cipher, message, sizeof(message), nonce, secret_key))
     {
-        printf("Could not init libhydrogen!\r\n");
+        printf("Could not secretbox encrypt message!\r\n");
     }
     
-    // test secretbox
-    printf("Generating secretbox key...\r\n");
-    hydro_secretbox_keygen(secret_key);
-    printf("Key: ");
-    for (int i = 0; i < hydro_secretbox_KEYBYTES; i++)
+    printf("cipher: ");
+    for (int i = 0; i < sizeof(cipher); i++)
     {
-        printf("%02x", secret_key[i]);
+        printf("%02x", cipher[i]);
     }
     printf("\r\n");
     
-    printf("Encrypting message: %s\r\n", MESSAGE);
-    if (0 != hydro_secretbox_encrypt(ciphertext, MESSAGE, MESSAGE_LEN, 0, CONTEXT, secret_key))
+    uint8_t decrypted[36] = {0};
+    printf("tweetnacl decrypting...\r\n");
+    if (0 != crypto_secretbox_open(decrypted, cipher, sizeof(cipher), nonce, secret_key))
     {
-        printf("Could not hydro_secretbox_encrypt message!\r\n");
+        printf("Could not secretbox decrypt message!\r\n");
     }
     
-    printf("Ciphertext: ");
-    for (int i = 0; i < CIPHERTEXT_LEN; i++)
+    printf("decrypted: ");
+    for (int i = 0; i < sizeof(decrypted); i++)
     {
-        printf("%02x", ciphertext[i]);
+        printf("%02x", decrypted[i]);
     }
     printf("\r\n");
-    
-    printf("Decrypting...\r\n");
-    char decrypted[MESSAGE_LEN] = {0};
-    if (0 != hydro_secretbox_decrypt(decrypted, ciphertext, CIPHERTEXT_LEN, 0, CONTEXT, secret_key))
-    {
-        printf("Could not hydro_secretbox_decrypt ciphertext!\r\n");
-    }
-    printf("Decrypted: %s\r\n", decrypted);
     
 	/* Initialize zforth */
 	zf_init(trace);
