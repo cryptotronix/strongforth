@@ -5,7 +5,7 @@
  * Created on March 12, 2021, 3:15 PM
  */
 
-#define UART3_BAUD_RATE(BAUD_RATE) ((float)(F_CPU * 64 / (16 * (float)BAUD_RATE)) + 0.5)
+#define UART_BAUD_RATE(BAUD_RATE) ((float)(F_CPU * 64 / (16 * (float)BAUD_RATE)) + 0.5)
 
 #include <stdint.h>
 #include <stdio.h>
@@ -18,6 +18,7 @@
 #include "zforth.h"
 #include "base32.h"
 #include "cryptoauthlib.h"
+#include "hydrogen.h"
 
 zf_addr B32_INPUT = 0;
 
@@ -37,6 +38,14 @@ static void uart_init(uint16_t baudrate);
 static int uart_tx(char c, FILE *f);
 static int uart_rx(FILE *);
 static FILE f = FDEV_SETUP_STREAM(uart_tx, uart_rx, _FDEV_SETUP_RW);
+
+#define CONTEXT "Strongforth"
+#define MESSAGE "Test"
+#define MESSAGE_LEN 4
+#define CIPHERTEXT_LEN (hydro_secretbox_HEADERBYTES + MESSAGE_LEN)
+
+static uint8_t secret_key[hydro_secretbox_KEYBYTES] = {0};
+static uint8_t ciphertext[CIPHERTEXT_LEN] = {0};
 
 static inline void ccp_write_io(void *addr, uint8_t value)
 {
@@ -477,12 +486,12 @@ zf_cell zf_host_parse_num(const char *buf)
 
 void uart_init(uint16_t baudrate)
 {
-    PORTB.DIR &= ~PIN1_bm;
-    PORTB.DIR |= PIN0_bm;
+    PORTA.DIR &= ~PIN1_bm;
+    PORTA.DIR |= PIN0_bm;
     
-    USART3.BAUD = baudrate;
+    USART0.BAUD = baudrate;
     
-    USART3.CTRLB |= USART_RXEN_bm | USART_TXEN_bm;
+    USART0.CTRLB |= USART_RXEN_bm | USART_TXEN_bm;
 }
 
 
@@ -490,9 +499,9 @@ static int uart_tx(char c, FILE *f)
 {
     UNUSED(f);
     
-    while (!(USART3.STATUS & USART_DREIF_bm));
+    while (!(USART0.STATUS & USART_DREIF_bm));
     
-    USART3.TXDATAL = c;
+    USART0.TXDATAL = c;
 	
     return 0;
 }
@@ -502,9 +511,9 @@ int uart_rx(FILE *f)
 {
     UNUSED(f);
 	
-    while (!(USART3.STATUS & USART_RXCIF_bm));
+    while (!(USART0.STATUS & USART_RXCIF_bm));
 	
-    return USART3.RXDATAL;
+    return USART0.RXDATAL;
 }
 
 int main(void)
@@ -515,11 +524,47 @@ int main(void)
     CLKCTRL_Initialize();
     
 	/* Setup stdin/stdout */
-	uart_init(UART3_BAUD_RATE(9600));
+	uart_init(UART_BAUD_RATE(115200));
 	stdout = stdin = stderr = &f;
     
     printf("Hello ZForth!\r\n");
 
+    if (0 != hydro_init())
+    {
+        printf("Could not init libhydrogen!\r\n");
+    }
+    
+    // test secretbox
+    printf("Generating secretbox key...\r\n");
+    hydro_secretbox_keygen(secret_key);
+    printf("Key: ");
+    for (int i = 0; i < hydro_secretbox_KEYBYTES; i++)
+    {
+        printf("%02x", secret_key[i]);
+    }
+    printf("\r\n");
+    
+    printf("Encrypting message: %s\r\n", MESSAGE);
+    if (0 != hydro_secretbox_encrypt(ciphertext, MESSAGE, MESSAGE_LEN, 0, CONTEXT, secret_key))
+    {
+        printf("Could not hydro_secretbox_encrypt message!\r\n");
+    }
+    
+    printf("Ciphertext: ");
+    for (int i = 0; i < CIPHERTEXT_LEN; i++)
+    {
+        printf("%02x", ciphertext[i]);
+    }
+    printf("\r\n");
+    
+    printf("Decrypting...\r\n");
+    char decrypted[MESSAGE_LEN] = {0};
+    if (0 != hydro_secretbox_decrypt(decrypted, ciphertext, CIPHERTEXT_LEN, 0, CONTEXT, secret_key))
+    {
+        printf("Could not hydro_secretbox_decrypt ciphertext!\r\n");
+    }
+    printf("Decrypted: %s\r\n", decrypted);
+    
 	/* Initialize zforth */
 	zf_init(trace);
 	zf_bootstrap();

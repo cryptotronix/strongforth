@@ -120,6 +120,39 @@
       <itemPath>twi0_master.h</itemPath>
       <itemPath>base32.h</itemPath>
     </logicalFolder>
+    <logicalFolder name="libhydrogen" displayName="libhydrogen" projectFiles="true">
+      <logicalFolder name="impl" displayName="impl" projectFiles="true">
+        <logicalFolder name="gimli-core" displayName="gimli-core" projectFiles="true">
+          <itemPath>libhydrogen/impl/gimli-core/sse2.h</itemPath>
+          <itemPath>libhydrogen/impl/gimli-core/portable.h</itemPath>
+        </logicalFolder>
+        <logicalFolder name="random" displayName="random" projectFiles="true">
+          <itemPath>libhydrogen/impl/random/avr.h</itemPath>
+          <itemPath>libhydrogen/impl/random/riot.h</itemPath>
+          <itemPath>libhydrogen/impl/random/nrf52832.h</itemPath>
+          <itemPath>libhydrogen/impl/random/windows.h</itemPath>
+          <itemPath>libhydrogen/impl/random/unix.h</itemPath>
+          <itemPath>libhydrogen/impl/random/mbed.h</itemPath>
+          <itemPath>libhydrogen/impl/random/particle.h</itemPath>
+          <itemPath>libhydrogen/impl/random/esp32.h</itemPath>
+          <itemPath>libhydrogen/impl/random/wasi.h</itemPath>
+        </logicalFolder>
+        <itemPath>libhydrogen/impl/sign.h</itemPath>
+        <itemPath>libhydrogen/impl/kx.h</itemPath>
+        <itemPath>libhydrogen/impl/secretbox.h</itemPath>
+        <itemPath>libhydrogen/impl/hydrogen_p.h</itemPath>
+        <itemPath>libhydrogen/impl/pwhash.h</itemPath>
+        <itemPath>libhydrogen/impl/x25519.h</itemPath>
+        <itemPath>libhydrogen/impl/kdf.h</itemPath>
+        <itemPath>libhydrogen/impl/common.h</itemPath>
+        <itemPath>libhydrogen/impl/random.h</itemPath>
+        <itemPath>libhydrogen/impl/core.h</itemPath>
+        <itemPath>libhydrogen/impl/hash.h</itemPath>
+        <itemPath>libhydrogen/impl/gimli-core.h</itemPath>
+      </logicalFolder>
+      <itemPath>libhydrogen/hydrogen.h</itemPath>
+      <itemPath>libhydrogen/hydrogen.c</itemPath>
+    </logicalFolder>
     <logicalFolder name="LinkerScript"
                    displayName="Linker Files"
                    projectFiles="true">
@@ -141,6 +174,9 @@
       <itemPath>Makefile</itemPath>
     </logicalFolder>
   </logicalFolder>
+  <sourceRootList>
+    <Elem>libhydrogen</Elem>
+  </sourceRootList>
   <projectmakefile>Makefile</projectmakefile>
   <confs>
     <conf name="default" type="2">
@@ -231,7 +267,8 @@
         <property key="call-prologues" value="false"/>
         <property key="default-bitfield-type" value="true"/>
         <property key="default-char-type" value="true"/>
-        <property key="extra-include-directories" value="cryptoauthlib-3.2.5"/>
+        <property key="extra-include-directories"
+                  value="cryptoauthlib-3.2.5;libhydrogen"/>
         <property key="extra-warnings" value="false"/>
         <property key="garbage-collect-data" value="true"/>
         <property key="garbage-collect-functions" value="true"/>
