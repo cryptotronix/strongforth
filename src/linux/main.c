@@ -397,19 +397,38 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 
 		    /* returning the rotating key */
 		    uint8_t *pubkey;
-                    zf_addr pk_addr = zf_pop();
-		    uint8_t pklen = get_crypto_pointer(&pubkey, pk_addr);
+		    uint8_t pklen = get_crypto_pointer(&pubkey, zf_pop());
+
+		    /* getting rand out */
+		    uint8_t *random;
+		    uint8_t ranlen = get_crypto_pointer(&random, zf_pop());
+
+		    /* getting seed */
+		    uint8_t *seed;
+		    uint8_t selen = get_crypto_pointer(&seed, zf_pop());
 
 		    uint16_t slot_config = 0;
 		    uint16_t key_config = 0;
 
 		    if (pklen != 64)
                     	fprintf(stderr, "pubkey buf not 64 bytes.");
+		    else if (selen != 20)
+                    	fprintf(stderr, "seed must be 20 bytes.");
+		    else if (ranlen != 32)
+                    	fprintf(stderr, "rand must be 32 bytes.");
                     else
                     {
-                        status = atcab_read_pubkey(14, pubkey);
-			if (status != ATCA_SUCCESS)
-                        	fprintf(stderr, "atcab_read_pubkey() failed: %02x\r\n", status);
+                        status = atcab_nonce_rand(seed, random);
+                        if (status != ATCA_SUCCESS)
+                        	fprintf(stderr, "atcab_nonce() failed: %02x\r\n", status);
+
+			if (status == ATCA_SUCCESS)
+			{
+                        	status = atcab_read_pubkey(14, pubkey);
+				if (status != ATCA_SUCCESS)
+                        		fprintf(stderr, "atcab_read_pubkey() failed: %02x\r\n",
+							status);
+			}
 
 			if (status == ATCA_SUCCESS)
 			{
@@ -454,10 +473,6 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
                     uint8_t *verdata;
                     zf_cell verlen = get_crypto_pointer(&verdata, zf_pop());
 
-		    /* get seed value for nonce */
-                    uint8_t *nonce;
-                    zf_cell noncelen = get_crypto_pointer(&nonce, zf_pop());
-
                     zf_cell validate = zf_pop();
 
 		    bool is_verified = -1;
@@ -468,23 +483,12 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
                     	fprintf(stderr, "gendata buf not 3 bytes.");
 		    else if (verlen != 19)
                     	fprintf(stderr, "verdata buf not 19 bytes.");
-		    else if (noncelen != 32)
-                    	fprintf(stderr, "nonce buf not 32 bytes.");
                     else
                     {
-                        status = atcab_nonce(nonce);
-                        if (status != ATCA_SUCCESS)
-                        	fprintf(stderr, "atcab_nonce() failed: %02x\r\n", status);
-
-			if (status == ATCA_SUCCESS)
-			{
-				status = atcab_genkey_base(GENKEY_MODE_PUBKEY_DIGEST, 14,
-						gendata, NULL);
-				if (status != ATCA_SUCCESS)
-                            		fprintf(stderr, "atcab_genkey_base() failed: %02x\r\n",
-							status);
-			}
-
+			status = atcab_genkey_base(GENKEY_MODE_PUBKEY_DIGEST, 14,
+					gendata, NULL);
+			if (status != ATCA_SUCCESS)
+                        	fprintf(stderr, "atcab_genkey_base() failed: %02x\r\n", status);
 			if (status == ATCA_SUCCESS)
 			{
 				if (validate == 0)

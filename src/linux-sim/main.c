@@ -446,8 +446,11 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
         uint8_t *pubkey;
         int pubkey_len = get_crypto_pointer(&pubkey, zf_pop());
 
-        uint8_t *nonce;
-        int nonce_len = get_crypto_pointer(&nonce, zf_pop());
+        uint8_t *random;
+        int rand_len = get_crypto_pointer(&random, zf_pop());
+
+        uint8_t *seed;
+        int seed_len = get_crypto_pointer(&seed, zf_pop());
 
 	zf_cell validate = zf_pop();
 
@@ -456,7 +459,6 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
     	uint8_t validation_msg[55];
         atca_temp_key_t temp_key;
 	atca_nonce_in_out_t nonce_params;
-	uint8_t rand_out[ATCA_KEY_SIZE];
         ATCA_STATUS status = ATCA_GEN_FAIL;
 
         assert(digest_len == 32);
@@ -464,7 +466,8 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
         assert(gendata_len == 3);
         assert(serial_len == 9);
         assert(pubkey_len == 64);
-        assert(nonce_len == 32);
+        assert(rand_len == 32);
+        assert(seed_len == 20);
 
 	if (validate == 0)
 		validate = 1;
@@ -473,10 +476,10 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 
         memset(&temp_key, 0, sizeof(temp_key));
         memset(&nonce_params, 0, sizeof(nonce_params));
-        nonce_params.mode = NONCE_MODE_PASSTHROUGH;
+        nonce_params.mode = NONCE_MODE_SEED_UPDATE;
         nonce_params.zero = 0;
-        nonce_params.num_in = nonce;
-        nonce_params.rand_out = rand_out;
+        nonce_params.num_in = seed;
+        nonce_params.rand_out = random;
         nonce_params.temp_key = &temp_key;
 
         status = atcah_nonce(&nonce_params);
