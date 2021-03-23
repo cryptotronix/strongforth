@@ -44,12 +44,6 @@ static inline void tell(void)
     fflush(stdout);
 }
 
-static inline void quit(void)
-{
-    printf("\n");
-    exit(0);
-}
-
 static inline void decimal_tell(void)
 {
     int i = 0;
@@ -116,11 +110,10 @@ static inline void get_counter(void)
     if (status != ATCA_SUCCESS)
     {
         fprintf(stderr, "atcab_counter_read() failed: %02x\r\n", status);
+        return;
     }
-    else
-    {
-        zf_push(counter_val);
-    }
+
+    zf_push(counter_val);
 }
 
 static inline void get_counter_inc(void)
@@ -130,11 +123,10 @@ static inline void get_counter_inc(void)
     if (status != ATCA_SUCCESS)
     {
         fprintf(stderr, "atcab_counter_increment() failed: %02x\r\n", status);
+        return;
     }
-    else
-    {
-        zf_push(counter_val);
-    }
+    
+    zf_push(counter_val);
 }
 
 static inline void do_ecdsa_sign(void)
@@ -261,6 +253,7 @@ static inline void do_ecdh(void)
     if (shsclen != 32)
     {
         fprintf(stderr, "sharsec buf not 32 bytes.");
+        return;
     }
     
     ATCA_STATUS status = atcab_ecdh(pri_key_id, pubkey, sharsec);
@@ -481,7 +474,8 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 
 		/* Application specific callbacks */
 		case ZF_SYSCALL_USER + 0:
-			quit();
+			printf("\n");
+            exit(0);
 			break;
 
 		case ZF_SYSCALL_USER + 1:
