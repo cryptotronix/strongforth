@@ -39,6 +39,8 @@ zf_addr B32_INPUT = 0;
 
 sw_sha256_ctx g_sha256_ctx;
 
+
+
 static uint8_t get_crypto_pointer(uint8_t **buf, zf_addr addr)
 {
     uint8_t len = 0;
@@ -48,6 +50,126 @@ static uint8_t get_crypto_pointer(uint8_t **buf, zf_addr addr)
     *buf = dict_get_pointer(addr + 1, len);
     return len;
 }
+
+static inline void crypto_secretbox_keygen ()
+{
+    uint8_t *key_buf = NULL;
+    uint8_t l = get_crypto_pointer (&key_buf, zf_pop());
+    if (32 == l)
+    {
+        hydro_secretbox_keygen (key_buf);
+    }
+
+}
+
+#define STH_SECRETBOX_CLEN (64)
+#define STH_SECRETBOX_MLEN (28)
+
+static inline void crypto_secretbox_encrypt ()
+{
+    uint8_t *key_buf = NULL;
+    uint8_t l = get_crypto_pointer (&key_buf, zf_pop());
+    if (32 != l)
+    {
+        fprintf (stderr, "key buff wrong size\n");
+        return;
+    }
+
+
+    uint32_t msg_id = zf_pop();
+
+    uint8_t *m_buf = NULL;
+    l = get_crypto_pointer (&m_buf, zf_pop());
+    if (STH_SECRETBOX_MLEN != l)
+    {
+        fprintf (stderr, "m buff wrong size\n");
+        return;
+    }
+
+
+    l = zf_pop();
+    if (l > STH_SECRETBOX_MLEN)
+    {
+        fprintf (stderr, "mlen wrong size\n");
+        return;
+    }
+    else if (l < STH_SECRETBOX_MLEN)
+    {
+        int padsize = hydro_pad(m_buf, l, STH_SECRETBOX_MLEN, STH_SECRETBOX_MLEN);
+        if (STH_SECRETBOX_MLEN != padsize)
+        {
+            fprintf (stderr, "padding fail %d\n", padsize);
+            return;
+        }
+    }
+
+
+    uint8_t *c_buf = NULL;
+    l = get_crypto_pointer (&c_buf, zf_pop());
+    if (STH_SECRETBOX_CLEN != l)
+    {
+        fprintf (stderr, "ctext  fail fail\n");
+        return;
+    }
+
+    hydro_secretbox_encrypt(c_buf, m_buf, STH_SECRETBOX_MLEN,
+                            msg_id, HYDRO_CONTEXT,
+                            key_buf);
+}
+
+static inline void crypto_secretbox_decrypt ()
+{
+    uint8_t *key_buf = NULL;
+    uint8_t l = get_crypto_pointer (&key_buf, zf_pop());
+    if (32 != l)
+        return;
+
+    uint32_t msg_id = zf_pop();
+
+    uint8_t *m_buf = NULL;
+    l = get_crypto_pointer (&m_buf, zf_pop());
+    if (STH_SECRETBOX_MLEN != l)
+        return;
+
+    uint8_t *c_buf = NULL;
+    l = get_crypto_pointer (&c_buf, zf_pop());
+    if (STH_SECRETBOX_CLEN != l)
+        return;
+
+    int rc = hydro_secretbox_decrypt(m_buf, c_buf, STH_SECRETBOX_CLEN,
+                                     msg_id, HYDRO_CONTEXT, key_buf);
+
+    if (0 == rc)
+    {
+        ssize_t unpad =  (uint32_t)hydro_unpad(m_buf,
+                                               STH_SECRETBOX_MLEN,
+                                               STH_SECRETBOX_MLEN);
+        if (-1 == unpad || unpad > 28)
+        {
+            fprintf (stdout, "bad padding: %d\n", (int)unpad);
+            zf_push (0);
+        }
+        else
+        {
+            zf_push ((uint32_t) unpad);
+        }
+    }
+    else
+    {
+        fprintf (stdout, "decrypt failed\n");
+        zf_push(0);
+    }
+}
+
+static inline void crypto_memzero ()
+{
+    uint8_t *buf = NULL;
+    uint8_t l = get_crypto_pointer (&buf, zf_pop());
+
+    hydro_memzero (buf, l);
+
+}
+
 
 /*
  * Evaluate buffer with code, check return value and report errors
@@ -519,6 +641,22 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 			fprintf(stderr, "atcah_sign_internal_msg() failed: %02x\r\n", status);
 	}
     }
+        break;
+
+    case ZF_SYSCALL_USER + 50:
+        crypto_secretbox_keygen();
+        break;
+
+    case ZF_SYSCALL_USER + 51:
+        crypto_secretbox_encrypt();
+        break;
+
+    case ZF_SYSCALL_USER + 52:
+        crypto_secretbox_decrypt();
+        break;
+
+    case ZF_SYSCALL_USER + 53:
+        crypto_memzero();
         break;
 
     default:

@@ -40,6 +40,13 @@
 : hydrod ( ciphertext message msgid key -- flag ) 172 sys ;
 : srotpre ( valid seed randout pubkey serial slotconf keyconf gendata verdata digest -- ) 173 sys ;
 
+: symkeygen ( key -- ) 178 sys ;
+: e# ( c mlen m msgid key -- ) 179 sys ;
+( decryption can return 0 if fail )
+: d# ( c m msgid key -- mlen ) 180 sys ;
+: z# ( buffer -- ) 181 sys ;
+
+
 
 ( dictionary access. These are shortcuts through the primitive operations are !!, @@ and ,, )
 
@@ -136,9 +143,9 @@ var verdata 19 1 + allot
 var gendata 3 1 + allot
 var seed 20 1 + allot
 
-var ctext 64 1 + allot
-var ptext 28 1 + allot
-var key 32 1 + allot
+var c 64 1 + allot
+var m 28 1 + allot
+var k 32 1 + allot
 
 
 ( setting size byte )
@@ -153,9 +160,9 @@ var key 32 1 + allot
 3 gendata !u8
 20 seed !u8
 
- 64 ctext !u8
- 28 ptext !u8
- 32 key !u8
+ 64 c !u8
+ 28 m !u8
+ 32 k !u8
 
 ( methods for handling the dictionary )
 
