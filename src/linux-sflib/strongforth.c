@@ -20,13 +20,10 @@ static size_t RETBUF_INDEX = 0;
 
 static char* allot_retbuf (size_t len)
 {
-	/* ensure that index + lenth + a space does not
-	 * overwrite terminating \0 in buf */
-	if (RETBUF_INDEX + len + 1 > (sizeof(RETURN_BUF) - 2))
+	if (RETBUF_INDEX + len> (sizeof(RETURN_BUF) - 2))
 		return NULL;
         RETBUF_INDEX = RETBUF_INDEX + len;
-	memset(RETURN_BUF + RETBUF_INDEX++, ' ', 1);
-	return RETURN_BUF + (RETBUF_INDEX - (len + 1));
+	return RETURN_BUF + (RETBUF_INDEX - len);
 }
 
 static int retbuf_putchar (char c)
@@ -73,9 +70,12 @@ static inline void stf_print()
 	int len = snprintf(cell, 11, ZF_CELL_FMT, zf_pop());
 	if (len > 0 )
 	{
-		retbuf = allot_retbuf(strlen(cell));
+		retbuf = allot_retbuf(strlen(cell) + 1);
 		if (retbuf != NULL)
+		{
 			memcpy(retbuf, cell, strlen(cell));
+			memset(retbuf + strlen(cell), ' ', 1);
+		}
 	}
 }
 #if defined(__unix__)
@@ -144,9 +144,11 @@ static inline void b32tell(void)
     uint8_t *data;
     zf_cell len = get_crypto_pointer(&data, addr);
 
-    char *retbuf = allot_retbuf(len);
-    if (retbuf)
+    char *retbuf = allot_retbuf(len + 1);
+    if (retbuf){
     	base32_encode(data, len, (uint8_t *) retbuf, len);
+	memset(retbuf + len, ' ', 1);
+    }
 }
 
 static inline void get_random(void)

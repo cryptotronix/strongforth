@@ -164,7 +164,7 @@ var key 32 1 + allot
 32 key !u8
 
 ( command output wrappers ) 
-: rot1c rot1 ser getser 0 . ." 32<" see 32> ." 32<" ran 32> ." 32<" pub 32> ." 32<" ser 32> . . ." gendata verdata dig rot2"  ;
+: rot1c rot1 ser getser 0 . ." 32< " see 32> ." 32< " ran 32> ." 32< " pub 32> ." 32< " ser 32> . . ." gendata verdata dig rot2"  ;
 
 
 ( methods for handling the dictionary )
