@@ -34,6 +34,9 @@
 #define HYDRO_CONTEXT "strongfo"
 #define HYDRO_MLEN (28)
 #define HYDRO_CLEN (HYDRO_MLEN + hydro_secretbox_HEADERBYTES)
+#define STH_SECRETBOX_CLEN (64)
+#define STH_SECRETBOX_MLEN (28)
+
 
 zf_addr B32_INPUT = 0;
 
@@ -61,9 +64,6 @@ static inline void crypto_secretbox_keygen ()
     }
 
 }
-
-#define STH_SECRETBOX_CLEN (64)
-#define STH_SECRETBOX_MLEN (28)
 
 static inline void crypto_secretbox_encrypt ()
 {
@@ -146,8 +146,8 @@ static inline void crypto_secretbox_decrypt ()
                                                STH_SECRETBOX_MLEN);
         if (-1 == unpad || unpad > 28)
         {
-            fprintf (stdout, "bad padding: %d\n", (int)unpad);
-            zf_push (0);
+            /*  push max message size */
+            zf_push (STH_SECRETBOX_MLEN);
         }
         else
         {
@@ -167,6 +167,54 @@ static inline void crypto_memzero ()
     uint8_t l = get_crypto_pointer (&buf, zf_pop());
 
     hydro_memzero (buf, l);
+
+}
+
+static inline void crypto_random_fill()
+{
+    uint8_t *buf = NULL;
+    uint8_t l = get_crypto_pointer (&buf, zf_pop());
+
+    if (buf)
+        hydro_random_buf(buf, l);
+}
+
+static inline void crypto_kdf()
+{
+    uint8_t *master_key = NULL;
+    uint8_t l = get_crypto_pointer (&master_key, zf_pop());
+    if (l != hydro_kdf_KEYBYTES)
+    {
+        fprintf(stderr, "invalid kdf keybytes\n");
+        return;
+    }
+
+
+    uint32_t sub_key_id = zf_pop();
+
+    uint8_t *sub_key = NULL;
+    uint8_t skl = get_crypto_pointer (&sub_key, zf_pop());
+    if (skl < 16 || skl > 64)
+    {
+        fprintf(stderr, "invalid subkey buffer\n");
+        return;
+    }
+
+    hydro_kdf_derive_from_key(sub_key, skl, sub_key_id, HYDRO_CONTEXT, master_key);
+}
+
+static inline void debug_copy_buf()
+{
+    uint8_t *a = NULL;
+    uint8_t al = get_crypto_pointer (&a, zf_pop());
+
+    uint8_t *b = NULL;
+    uint8_t bl = get_crypto_pointer (&b, zf_pop());
+
+    assert (al == bl);
+
+    memcpy (b, a, bl);
+
 
 }
 
@@ -493,60 +541,6 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 
     }
         break;
-    case ZF_SYSCALL_USER + 43: {
-
-        uint8_t *key;
-        int l = get_crypto_pointer(&key, zf_pop());
-        assert (hydro_secretbox_KEYBYTES == l);
-
-        uint8_t *iv;
-        l = get_crypto_pointer(&iv, zf_pop());
-        assert (32 == l);
-
-        int msg_id = zf_pop();
-
-        uint8_t *m_;
-        int mlen = get_crypto_pointer(&m_, zf_pop());
-        assert (HYDRO_MLEN == mlen);
-
-        uint8_t *c;
-        l = get_crypto_pointer(&c, zf_pop());
-        assert (HYDRO_CLEN == l);
-
-        int rc = hydro_secretbox_encrypt_iv(c, m_, mlen, msg_id, HYDRO_CONTEXT, key, iv);
-        assert (0==rc);
-    }
-        break;
-
-    case ZF_SYSCALL_USER + 44: {
-
-        uint8_t *key;
-        int l = get_crypto_pointer(&key, zf_pop());
-        assert (hydro_secretbox_KEYBYTES == l);
-
-        int msg_id = zf_pop();
-
-        uint8_t *m_;
-        int mlen = get_crypto_pointer(&m_, zf_pop());
-        assert (HYDRO_MLEN == mlen);
-
-        uint8_t *c;
-        l = get_crypto_pointer(&c, zf_pop());
-        assert (HYDRO_CLEN == l);
-
-        int rc = hydro_secretbox_decrypt(m_, c, HYDRO_CLEN, msg_id, HYDRO_CONTEXT, key);
-
-        if (0 == rc)
-        {
-            zf_push (~0);
-        }
-        else
-        {
-            zf_push (0);
-        }
-
-    }
-        break;
 
     /* SERVER'S KEY ROTATION PREP */
     case ZF_SYSCALL_USER + 45: {
@@ -657,6 +651,18 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 
     case ZF_SYSCALL_USER + 53:
         crypto_memzero();
+        break;
+
+    case ZF_SYSCALL_USER + 54:
+        crypto_random_fill();
+        break;
+
+    case ZF_SYSCALL_USER + 55:
+        crypto_kdf();
+        break;
+
+    case ZF_SYSCALL_USER + 56:
+        debug_copy_buf();
         break;
 
     default:

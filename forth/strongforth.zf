@@ -36,15 +36,16 @@
 : sha256i  ( -- ) 168 sys ;
 : sha256u  ( buffer -- ) 169 sys ;
 : sha256f  ( digest -- ) 170 sys ;
-: hydroe ( ciphertext message msgid iv key -- ) 171 sys ;
-: hydrod ( ciphertext message msgid key -- flag ) 172 sys ;
 : srotpre ( valid seed randout pubkey serial slotconf keyconf gendata verdata digest -- ) 173 sys ;
 
 : symkeygen ( key -- ) 178 sys ;
-: e# ( c mlen m msgid key -- ) 179 sys ;
-( decryption can return 0 if fail )
-: d# ( c m msgid key -- mlen ) 180 sys ;
-: z# ( buffer -- ) 181 sys ;
+: hydroe ( c mlen m msgid key -- ) 179 sys ;
+: hydrod ( c m msgid key -- t=mlen f=0 ) 180 sys ;
+: memzero ( buffer -- ) 181 sys ;
+: rfill ( buffer -- ) 182 sys ;
+: hydrokdf ( subkey subkeyid masterkey -- ) 183 sys ;
+
+: memcpy ( dest src -- ) 184 sys ;
 
 
 
@@ -137,7 +138,10 @@ var random 32 1 + allot
 var digest 32 1 + allot
 var prikey 32 1 + allot
 
-var sharsec 32 1 + allot
+ var sharesec 32 1 + allot
+ var uplink 32 1 + allot
+ var dolink 32 1 + allot
+ 
 var serial 9 1 + allot
 var verdata 19 1 + allot
 var gendata 3 1 + allot
@@ -154,7 +158,9 @@ var k 32 1 + allot
 32 random !u8
 32 digest !u8
 32 prikey !u8
-32 sharsec !u8
+ 32 sharesec !u8
+ 32 uplink !u8
+ 32 dolink !u8
 9 serial !u8
 19 verdata !u8
 3 gendata !u8
@@ -175,6 +181,16 @@ var k 32 1 + allot
 
 : name dup @ 31 & swap next dup next rot tell @ ;
 : words latest @ begin name 32 emit dup 0 = until cr drop ;
+
+var upmsgid
+var domsgid
+
+: ecdhkdf uplink 0 sharesec hydrokdf dolink 1 sharesec hydrokdf 0 upmsgid ! 0 domsgid ! ;
+
+
+
+: encrypt c swap m upmsgid @ k hydroe upmsgid dup @ 1 + swap ! ;
+: decrypt c m domsgid @ k hydrod dup 0 = unless domsgid dup @ 1 + swap ! fi ;
 
 
 ." Welcome to strongForth, " here . ." bytes used" cr ;
