@@ -21,10 +21,10 @@ int main(int argc, char **argv)
         	fprintf(stderr, "init failed: %02x\r\n", status);
 		exit(status);
 	}
-	STF_EVAL_RESP resp = stf_eval("see dup 32< N6BC66LWUABO7ABJFBWNXS4SBIYP2DX7 ran pub rot1c");
-	printf("%s", (char *)get_retbuf());
-	printf("\n%i", resp.evalrc);
-	printf("\n%i", resp.sf_status);
+	stf_eval_resp_t resp = stf_eval("see dup 32< N6BC66LWUABO7ABJFBWNXS4SBIYP2DX7 ran pub rot1c");
+	printf("%s", (char *)stf_get_retbuf());
+	printf("\n%i", resp.rc);
+	printf("\n%i", resp.stf_status);
 	return 0;
 }
 

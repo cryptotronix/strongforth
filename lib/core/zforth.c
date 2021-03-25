@@ -28,7 +28,6 @@
 /* Defining the Strongheld status "register". Importantly, this register cannot
  * be written to by the forth interpreter, only read. */
 
-static zf_cell STRONGHELD_STATUS = 0;
 
 
 /* Define all primitives, make sure the two tables below always match.  The
@@ -243,20 +242,6 @@ uint8_t *dict_get_pointer(zf_addr addr, size_t len)
 {
 	CHECK(addr < ZF_DICT_SIZE-len, ZF_ABORT_OUTSIDE_MEM);
         return (uint8_t*) dict + addr;
-}
-
-/* Getter and setter for the strongheld status register */
-
-/*
-static void strongheld_status_set(zf_cell val)
-{
-	STRONGHELD_STATUS = val;
-}
-*/
-
-zf_cell strongheld_status_get()
-{
-	return STRONGHELD_STATUS;
 }
 
 /*
