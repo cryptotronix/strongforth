@@ -15,7 +15,7 @@ ATCAIfaceCfg cfg_ateccx08a_kithid_default = {
 
 int main(int argc, char **argv)
 {
-	ATCA_STATUS status = stf_init(&cfg_ateccx08a_kithid_default);
+	ATCA_STATUS status = stf_init("../../forth/strongforth.zf", &cfg_ateccx08a_kithid_default);
 	if (status != ATCA_SUCCESS)
 	{
         	fprintf(stderr, "init failed: %02x\r\n", status);

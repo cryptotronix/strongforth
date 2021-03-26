@@ -1,10 +1,7 @@
 #include <stdio.h>
-#include <stdarg.h>
 #include <limits.h>
 #include <errno.h>
 #include <string.h>
-#include <stdarg.h>
-#include <stdint.h>
 #include <stdlib.h>
 #include <getopt.h>
 #include <math.h>
@@ -12,36 +9,34 @@
 
 #include "strongforth.h"
 #include "base32.h"
-#include "zforth.h"
+#include "hydrogen.h"
+#include "common.h"
 
-#define SERIAL_NUM_LEN 9
-#define KEYGEN_CONFIG_LEN 3
-#define VERIFY_CONFIG_LEN 19
-#define NONCE_SEED_LEN 20
+#if defined(STF_DEVICE)
+#include "device.h"
+#endif
+#if defined(STF_SERVER)
+#include "server.h"
+#endif
 
+/* libhydrogen defines */
+#define HYDRO_CONTEXT "strongfo"
+#define HYDRO_MLEN (28)
+#define HYDRO_CLEN (HYDRO_MLEN + hydro_secretbox_HEADERBYTES)
+
+/* common syscall ids */
 #define STF_SYSCALL_EXIT ZF_SYSCALL_USER + 0
 #define STF_SYSCALL_SIN ZF_SYSCALL_USER + 1
 #define STF_SYSCALL_INCLUDE ZF_SYSCALL_USER + 2
 #define STF_SYSCALL_SAVE ZF_SYSCALL_USER + 3
-#define STF_SYSCALL_DTELL ZF_SYSCALL_USER + 4
-#define STF_SYSCALL_B32IN ZF_SYSCALL_USER + 5
-#define STF_SYSCALL_B32TELL ZF_SYSCALL_USER + 6
-#define STF_SYSCALL_INIT ZF_SYSCALL_USER + 7
-#define STF_SYSCALL_GETRAND ZF_SYSCALL_USER + 8
-#define STF_SYSCALL_GETCOUNT ZF_SYSCALL_USER + 9
-#define STF_SYSCALL_INCCOUNT ZF_SYSCALL_USER + 10
-#define STF_SYSCALL_SIGN ZF_SYSCALL_USER + 11
-#define STF_SYSCALL_VERIFY ZF_SYSCALL_USER + 12
-#define STF_SYSCALL_GETPUB ZF_SYSCALL_USER + 13
-#define STF_SYSCALL_SETPUB ZF_SYSCALL_USER + 14
-#define STF_SYSCALL_ECDH ZF_SYSCALL_USER + 15
-#define STF_SYSCALL_GETSTATUS ZF_SYSCALL_USER + 16
-#define STF_SYSCALL_GETSERIAL ZF_SYSCALL_USER + 17
-#define STF_SYSCALL_ROT1 ZF_SYSCALL_USER + 18
-#define STF_SYSCALL_ROT3 ZF_SYSCALL_USER + 19
-#define STF_SYSCALL_READPUB ZF_SYSCALL_USER + 20
+#define STF_SYSCALL_B32IN ZF_SYSCALL_USER + 4
+#define STF_SYSCALL_B32TELL ZF_SYSCALL_USER + 5
+#define STF_SYSCALL_GETSTATUS ZF_SYSCALL_USER + 6
+#define STF_SYSCALL_HYDROENC ZF_SYSCALL_USER + 7
+#define STF_SYSCALL_HYDRODEC ZF_SYSCALL_USER + 8
 
-static zf_cell STRONGFORTH_STATUS = 0;
+/* syscall ranges */
+#define STF_SYSCALLS_COMMON ZF_SYSCALL_USER + 8
 
 static zf_addr B32_INPUT = 0;
 
@@ -81,27 +76,6 @@ uint8_t stf_retbuf_copy (char *buf, size_t len)
 char *stf_get_retbuf ()
 {
 	return RETURN_BUF;
-}
-
-/* commented out until used
-static void set_strongforth_status(zf_cell val)
-{
-	STRONGFORTH_STATUS = val;
-} */
-
-static zf_cell get_strongforth_status()
-{
-	return STRONGFORTH_STATUS;
-}
-
-static uint8_t get_crypto_pointer(uint8_t **buf, zf_addr addr)
-{
-    uint8_t len = 0;
-    /* gets the length */
-    dict_get_bytes(addr, &len, 1);
-    /* get the actual data */
-    *buf = dict_get_pointer(addr + 1, len);
-    return len;
 }
 
 static inline void stf_print()
@@ -162,18 +136,6 @@ static inline void stf_tell(void)
     	memcpy(retbuf, buf, len);
 }
 
-static inline void stf_decimal_tell(void)
-{
-    int i = 0;
-    uint8_t *data;
-    zf_addr addr = zf_pop();
-    zf_cell len = get_crypto_pointer(&data, addr);
-    while (i < len)
-    {
-        fprintf(stdout, "%d ", *(data + i++));
-    }
-}
-
 static inline void stf_b32in(void)
 {
     zf_addr addr = zf_pop();
@@ -194,354 +156,55 @@ static inline void stf_b32tell(void)
     }
 }
 
-static inline void stf_get_random(void)
+static inline void stf_hydro_encrypt(void)
 {
-    zf_addr addr = zf_pop();
-    ATCA_STATUS status = atcab_random(dict_get_pointer(addr + 1, ATCA_KEY_SIZE));
-    if (status != ATCA_SUCCESS)
-    {
-        fprintf(stderr, "atcab_random() failed: %02x\r\n", status);
-    }
+    uint8_t *key;
+    int l = get_crypto_pointer(&key, zf_pop());
+    assert (hydro_secretbox_KEYBYTES == l);
+
+    uint8_t *iv;
+    l = get_crypto_pointer(&iv, zf_pop());
+    assert (32 == l);
+
+    int msg_id = zf_pop();
+
+    uint8_t *m_;
+    int mlen = get_crypto_pointer(&m_, zf_pop());
+    assert (HYDRO_MLEN == mlen);
+
+    uint8_t *c;
+    l = get_crypto_pointer(&c, zf_pop());
+    assert (HYDRO_CLEN == l);
+
+    int rc = hydro_secretbox_encrypt_iv(c, m_, mlen, msg_id, HYDRO_CONTEXT, key, iv);
+    assert (0==rc);
 }
 
-static inline void stf_get_counter(void)
+static inline void stf_hydro_decrypt(void)
 {
-    uint32_t counter_val;
-    ATCA_STATUS status = atcab_counter_read(1, &counter_val);
-    if (status != ATCA_SUCCESS)
+    uint8_t *key;
+    int l = get_crypto_pointer(&key, zf_pop());
+    assert (hydro_secretbox_KEYBYTES == l);
+
+    int msg_id = zf_pop();
+
+    uint8_t *m_;
+    int mlen = get_crypto_pointer(&m_, zf_pop());
+    assert (HYDRO_MLEN == mlen);
+
+    uint8_t *c;
+    l = get_crypto_pointer(&c, zf_pop());
+    assert (HYDRO_CLEN == l);
+
+    int rc = hydro_secretbox_decrypt(m_, c, HYDRO_CLEN, msg_id, HYDRO_CONTEXT, key);
+
+    if (0 == rc)
     {
-        fprintf(stderr, "atcab_counter_read() failed: %02x\r\n", status);
-        return;
-    }
-
-    zf_push(counter_val);
-}
-
-static inline void stf_get_counter_inc(void)
-{
-    uint32_t counter_val;
-    ATCA_STATUS status = atcab_counter_increment(1, &counter_val);
-    if (status != ATCA_SUCCESS)
-    {
-        fprintf(stderr, "atcab_counter_increment() failed: %02x\r\n", status);
-        return;
-    }
-
-    zf_push(counter_val);
-}
-
-static inline void stf_do_ecdsa_sign(void)
-{
-    uint8_t *sig;
-    zf_cell siglen = get_crypto_pointer(&sig, zf_pop());
-
-    zf_cell pri_key_id = zf_pop();
-
-    uint8_t *digest;
-    zf_cell diglen = get_crypto_pointer(&digest, zf_pop());
-
-    if (siglen != ATCA_ECCP256_SIG_SIZE)
-    {
-        fprintf(stderr, "sig buf not 64 bytes.");
-        return;
-    }
-
-    if (diglen != ATCA_SHA256_DIGEST_SIZE)
-    {
-        fprintf(stderr, "digest buf not 32 bytes.");
-        return;
-    }
-
-    ATCA_STATUS status = atcab_sign(pri_key_id, digest, sig);
-    if (status != ATCA_SUCCESS)
-    {
-        fprintf(stderr, "atcab_sign() failed: %02x\r\n", status);
-    }
-}
-
-static inline void stf_do_ecdsa_verify(void)
-{
-    uint8_t *sig;
-    zf_cell siglen = get_crypto_pointer(&sig, zf_pop());
-
-    zf_cell pub_key_id = zf_pop();
-
-    uint8_t *digest;
-    zf_cell diglen = get_crypto_pointer(&digest, zf_pop());
-
-    int8_t verified = 0;
-
-    if (siglen != ATCA_ECCP256_SIG_SIZE)
-    {
-        fprintf(stderr, "sig buf not 64 bytes.");
-        return;
-    }
-
-    if (diglen != ATCA_SHA256_DIGEST_SIZE)
-    {
-        fprintf(stderr, "digest buf not 32 bytes.");
-        return;
-    }
-
-    ATCA_STATUS status = atcab_verify_stored(digest, sig, pub_key_id, (bool *)&verified);
-    if (status != ATCA_SUCCESS)
-    {
-        fprintf(stderr, "atcab_verify_extern() failed: %02x\r\n", status);
-        return;
-    }
-
-    zf_push(verified ? -1 : 0);
-}
-
-static inline void stf_get_pubkey(void)
-{
-    uint8_t *pubkey;
-    zf_addr pk_addr = zf_pop();
-    uint8_t len = get_crypto_pointer(&pubkey, pk_addr);
-    if (len != ATCA_ECCP256_PUBKEY_SIZE)
-    {
-        fprintf(stderr, "pubkey buf not 64 bytes.");
-        return;
-    }
-
-    ATCA_STATUS status = atcab_get_pubkey(zf_pop(), pubkey);
-    if (status != ATCA_SUCCESS)
-    {
-        fprintf(stderr, "atcab_get_pubkey() failed: %02x\r\n", status);
-    }
-}
-
-static inline void stf_set_pubkey(void)
-{
-    uint8_t *pubkey;
-    zf_addr pk_addr = zf_pop();
-    uint8_t len = get_crypto_pointer(&pubkey, pk_addr);
-    if (len != ATCA_ECCP256_PUBKEY_SIZE)
-    {
-        fprintf(stderr, "pubkey buf not 64 bytes.");
-        return;
-    }
-
-    ATCA_STATUS status = atcab_write_pubkey(zf_pop(), pubkey);
-    if (status != ATCA_SUCCESS)
-    {
-        fprintf(stderr, "atcab_write_pubkey() failed: %02x\r\n", status);
-    }
-}
-
-static inline void stf_do_ecdh(void)
-{
-    uint8_t *sharsec;
-    zf_cell shsclen = get_crypto_pointer(&sharsec, zf_pop());
-
-    zf_cell pri_key_id = zf_pop();
-
-    uint8_t *pubkey;
-    uint8_t pklen = get_crypto_pointer(&pubkey, zf_pop());
-
-    if (pklen != ATCA_ECCP256_PUBKEY_SIZE)
-    {
-        fprintf(stderr, "pubkey buf not 64 bytes.");
-        return;
-    }
-
-    if (shsclen != ATCA_KEY_SIZE)
-    {
-        fprintf(stderr, "sharsec buf not 32 bytes.");
-        return;
-    }
-
-    ATCA_STATUS status = atcab_ecdh(pri_key_id, pubkey, sharsec);
-    if (status != ATCA_SUCCESS)
-    {
-        fprintf(stderr, "atcab_ecdh() failed: %02x\r\n", status);
-    }
-}
-
-static inline void stf_get_serial(void)
-{
-    uint8_t *serial;
-    zf_cell serlen = get_crypto_pointer(&serial, zf_pop());
-
-    if (serlen != SERIAL_NUM_LEN)
-    {
-        fprintf(stderr, "serial buf not 9 bytes.");
-        return;
-    }
-
-    ATCA_STATUS status = atcab_read_serial_number(serial);
-    if (status != ATCA_SUCCESS)
-    {
-        fprintf(stderr, "atcab_read_serial_number() failed: %02x\r\n", status);
-    }
-}
-
-static inline void stf_prep_key_rotate(void)
-{
-    /* returning the rotating key */
-    uint8_t *pubkey;
-    uint8_t pklen = get_crypto_pointer(&pubkey, zf_pop());
-
-    /* getting rand out */
-    uint8_t *random;
-    uint8_t ranlen = get_crypto_pointer(&random, zf_pop());
-
-    /* getting seed */
-    uint8_t *seed;
-    uint8_t selen = get_crypto_pointer(&seed, zf_pop());
-
-    uint16_t slot_config = 0;
-    uint16_t key_config = 0;
-
-    if (pklen != ATCA_ECCP256_PUBKEY_SIZE)
-    {
-        fprintf(stderr, "pubkey buf not 64 bytes.");
-        return;
-    }
-
-    if (selen != NONCE_SEED_LEN)
-    {
-        fprintf(stderr, "seed must be 20 bytes.");
-        return;
-    }
-
-    if (ranlen != ATCA_KEY_SIZE)
-    {
-        fprintf(stderr, "rand must be 32 bytes.");
-        return;
-    }
-
-    ATCA_STATUS status = atcab_nonce_rand(seed, random);
-    if (status != ATCA_SUCCESS)
-    {
-        fprintf(stderr, "atcab_nonce() failed: %02x\r\n", status);
-        return;
-    }
-
-    status = atcab_read_pubkey(14, pubkey);
-    if (status != ATCA_SUCCESS)
-    {
-        fprintf(stderr, "atcab_read_pubkey() failed: %02x\r\n", status);
-        return;
-    }
-
-
-    status = atcab_read_bytes_zone(ATCA_ZONE_CONFIG, -1, 48, (uint8_t*) &slot_config, 1);
-    if (status != ATCA_SUCCESS)
-    {
-        fprintf(stderr, "atcab_read_bytes_zone() failed: %02x\r\n", status);
-        return;
-    }
-    status = atcab_read_bytes_zone(ATCA_ZONE_CONFIG, -1, 49, (uint8_t*) &slot_config + 1, 1);
-    if (status != ATCA_SUCCESS)
-    {
-        fprintf(stderr, "atcab_read_bytes_zone() failed: %02x\r\n", status);
-        return;
-    }
-
-    status = atcab_read_bytes_zone(ATCA_ZONE_CONFIG, -1, 124, (uint8_t*) &key_config, 1);
-    if (status != ATCA_SUCCESS)
-    {
-        fprintf(stderr, "atcab_read_bytes_zone() failed: %02x\r\n", status);
-        return;
-    }
-    status = atcab_read_bytes_zone(ATCA_ZONE_CONFIG, -1, 125, (uint8_t*) &key_config + 1, 1);
-    if (status != ATCA_SUCCESS)
-    {
-        fprintf(stderr, "atcab_read_bytes_zone() failed: %02x\r\n", status);
-        return;
-    }
-
-    zf_push(slot_config);
-    zf_push(key_config);
-}
-
-static inline void stf_key_rotate(void)
-{
-    /* signature */
-    uint8_t *sig;
-    zf_cell siglen = get_crypto_pointer(&sig, zf_pop());
-
-    /* get genkey data */
-    uint8_t *gendata;
-    zf_cell genlen = get_crypto_pointer(&gendata, zf_pop());
-
-    /* get verifiaction data */
-    uint8_t *verdata;
-    zf_cell verlen = get_crypto_pointer(&verdata, zf_pop());
-
-    zf_cell validate = zf_pop();
-
-    bool is_verified = -1;
-
-    if (siglen != ATCA_ECCP256_SIG_SIZE)
-    {
-        fprintf(stderr, "sig buf not 64 bytes.");
-        return;
-    }
-
-    if (genlen != KEYGEN_CONFIG_LEN)
-    {
-        fprintf(stderr, "gendata buf not 3 bytes.");
-        return;
-    }
-
-    if (verlen != VERIFY_CONFIG_LEN)
-    {
-        fprintf(stderr, "verdata buf not 19 bytes.");
-        return;
-    }
-
-    ATCA_STATUS status = atcab_genkey_base(GENKEY_MODE_PUBKEY_DIGEST, 14, gendata, NULL);
-    if (status != ATCA_SUCCESS)
-    {
-        fprintf(stderr, "atcab_genkey_base() failed: %02x\r\n", status);
-        return;
-    }
-
-    if (validate == 0)
-    {
-        status = atcab_verify_validate(14, sig, verdata, &is_verified);
-        if (status != ATCA_SUCCESS)
-        {
-            fprintf(stderr, "atcab_verify_validate() failed: %02x\r\n", status);
-            return;
-        }
-    }
-    else if (validate == -1)
-    {
-        status = atcab_verify_invalidate(14, sig, verdata, &is_verified);
-        if (status != ATCA_SUCCESS)
-        {
-            fprintf(stderr, "atcab_verify_invalidate() failed: %02x\r\n", status);
-            return;
-        }
+        zf_push (~0);
     }
     else
     {
-        fprintf(stderr, "err: valid must be true(0) or false(-1)");
-        return;
-    }
-
-    zf_push(is_verified ? -1 : 0);
-}
-
-static inline void stf_read_pubkey_slot(void)
-{
-    uint8_t *pubkey;
-    zf_addr pk_addr = zf_pop();
-    uint8_t pklen = get_crypto_pointer(&pubkey, pk_addr);
-
-    if (pklen != ATCA_ECCP256_PUBKEY_SIZE)
-    {
-        fprintf(stderr, "pubkey buf not 64 bytes.");
-        return;
-    }
-
-    ATCA_STATUS status = atcab_read_pubkey(zf_pop(), pubkey);
-    if (status != ATCA_SUCCESS)
-    {
-        fprintf(stderr, "atcab_read_pubkey() failed: %02x\r\n", status);
+        zf_push (0);
     }
 }
 
@@ -550,46 +213,44 @@ static inline void stf_read_pubkey_slot(void)
  */
 zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 {
-    switch((int)id)
+    if ((int) id <= STF_SYSCALLS_COMMON)
     {
-		/* The core system callbacks */
-		case ZF_SYSCALL_EMIT:
-			retbuf_putchar((char)zf_pop());
-			break;
+    	switch((int)id)
+    	{
+    	    	/* The core system callbacks */
+    	    	case ZF_SYSCALL_EMIT:
+    	    		retbuf_putchar((char)zf_pop());
+    	    		break;
 
-		case ZF_SYSCALL_PRINT:
-			stf_print();
-			break;
+    	    	case ZF_SYSCALL_PRINT:
+    	    		stf_print();
+    	    		break;
 
-		case ZF_SYSCALL_TELL:
-			stf_tell();
-			break;
+    	    	case ZF_SYSCALL_TELL:
+    	    		stf_tell();
+    	    		break;
 
-		/* Application specific callbacks */
-		case STF_SYSCALL_EXIT:
-            		exit(0);
-			break;
+    	    	/* Application specific callbacks */
+    	    	case STF_SYSCALL_EXIT:
+    	        		exit(0);
+    	    		break;
 
-		case STF_SYSCALL_SIN:
-			zf_push(sin(zf_pop()));
-			break;
+    	    	case STF_SYSCALL_SIN:
+    	    		zf_push(sin(zf_pop()));
+    	    		break;
 
 #if defined(__unix__)
-		case STF_SYSCALL_INCLUDE:
-			if(input == NULL) {
-				return ZF_INPUT_PASS_WORD;
-			}
-			stf_include(input);
-			break;
+    	    	case STF_SYSCALL_INCLUDE:
+    	    		if(input == NULL) {
+    	    			return ZF_INPUT_PASS_WORD;
+    	    		}
+    	    		stf_include(input);
+    	    		break;
 
-		case STF_SYSCALL_SAVE:
-			stf_save("zforth.save");
-			break;
+    	    	case STF_SYSCALL_SAVE:
+    	    		stf_save("zforth.save");
+    	    		break;
 #endif
-
-		case STF_SYSCALL_DTELL:
-			stf_decimal_tell();
-			break;
 
 		case STF_SYSCALL_B32IN:
 			stf_b32in();
@@ -599,69 +260,28 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 			stf_b32tell();
 			break;
 
-		case STF_SYSCALL_INIT:
-			/* TODO remove entirely */
-			/* cal_init(); */
-			break;
-
-		case STF_SYSCALL_GETRAND:
-			stf_get_random();
-			break;
-
-		case STF_SYSCALL_GETCOUNT:
-			stf_get_counter();
-			break;
-
-		case STF_SYSCALL_INCCOUNT:
-			stf_get_counter_inc();
-			break;
-
-		case STF_SYSCALL_SIGN:
-			stf_do_ecdsa_sign();
-			break;
-
-		case STF_SYSCALL_VERIFY:
-			stf_do_ecdsa_verify();
-			break;
-
-		case STF_SYSCALL_GETPUB:
-			stf_get_pubkey();
-			break;
-
-		case STF_SYSCALL_SETPUB:
-			stf_set_pubkey();
-			break;
-
-		case STF_SYSCALL_ECDH:
-			stf_do_ecdh();
-			break;
-
 		case STF_SYSCALL_GETSTATUS:
 		    zf_push(get_strongforth_status());
 		    break;
 
-		case STF_SYSCALL_GETSERIAL:
-		    stf_get_serial();
-		    break;
+    	    	default:
+    	    		printf("unhandled syscall %d\n", id);
+    	    		break;
+    	}
+    }
+    else
+    {
+#if defined(STF_DEVICE)
+	stf_device_sys(id, input);
+    	return ZF_INPUT_INTERPRET;
+#endif
+#if defined(STF_SERVER)
+	stf_server_sys(id, input);
+    	return ZF_INPUT_INTERPRET;
+#endif
+    }
 
-		case STF_SYSCALL_ROT1:
-		    stf_prep_key_rotate();
-		    break;
-
-		case STF_SYSCALL_ROT3:
-		    stf_key_rotate();
-		    break;
-
-		case STF_SYSCALL_READPUB:
-		    stf_read_pubkey_slot();
-		    break;
-
-		default:
-			printf("unhandled syscall %d\n", id);
-			break;
-	}
-
-	return ZF_INPUT_INTERPRET;
+    return ZF_INPUT_INTERPRET;
 }
 
 /*
@@ -713,15 +333,16 @@ zf_cell zf_host_parse_num(const char *buf)
 /*
  * Initialize both zForth and cryptoauthlib
  */
-ATCA_STATUS stf_init (ATCAIfaceCfg *cfg)
+ATCA_STATUS stf_init (char *dict_path, ATCAIfaceCfg *cfg)
 {
 	zf_init(0);
-	// TODO we will not want to bootstrap in future,
-	// we need to provide a dict
-	zf_bootstrap();
-	stf_include("../../forth/sfsmall.zf");
 
-	ATCA_STATUS stat = !ATCA_SUCCESS;
+	// TODO will not be bootstrapping and including in future, will use binary
+	zf_bootstrap();
+	if (dict_path != NULL)
+		stf_include(dict_path);
+
+	ATCA_STATUS stat = ~ATCA_SUCCESS;
 	if (cfg != NULL)
 		stat = atcab_init(cfg);
 	else

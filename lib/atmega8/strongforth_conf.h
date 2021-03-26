@@ -1,5 +1,23 @@
-#ifndef zfconf
-#define zfconf
+#ifndef stfconf_h
+#define stfconf_h
+
+
+/***********************
+ * STRONGFORTH OPTIONS *
+ ***********************/
+
+/* Sets the length of the return buffer from strongforth */
+
+#define STF_RETURN_BUF_LEN 300
+
+/* buffer size for reading in instruction files */
+
+#define STF_FILE_INPUT_BUF_LEN 256
+
+
+/***********************
+ * INTERNAL zFORTH OPTIONS *
+ ***********************/
 
 /* Set to 1 to add tracing support for debugging and inspection. Requires the
  * zf_host_trace() function to be implemented. Adds about one kB to .text and
@@ -20,12 +38,12 @@
  * primitives and user veriables. On small embedded systems you may choose to
  * leave this out and start by loading a cross-compiled dictionary instead.
  * Enabling adds a few hundred bytes to the .text and .rodata segments */
- 
+
 #define ZF_ENABLE_BOOTSTRAP 1
 
 
-/* Set to 1 to enable typed access to memory. This allows memory read and write 
- * of signed and unsigned memory of 8, 16 and 32 bits width, as well as the zf_cell 
+/* Set to 1 to enable typed access to memory. This allows memory read and write
+ * of signed and unsigned memory of 8, 16 and 32 bits width, as well as the zf_cell
  * type. This adds a few hundred bytes of .text. Check the memaccess.zf file for
  * examples how to use these operations */
 

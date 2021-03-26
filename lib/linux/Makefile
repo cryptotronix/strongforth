@@ -1,14 +1,14 @@
 
 BIN	:= test
-SRC	:= test.c strongforth.c zforth.c base32.c
+SRC	:= test.c common.c device.c strongforth.c zforth.c base32.c
 
 OBJS    := $(subst .c,.o, $(SRC))
 DEPS    := $(subst .c,.d, $(SRC))
 
 CC	:= $(CROSS)gcc
 
-VPATH   := .
-CFLAGS	+= -I. -I/usr/lib/cryptoauthlib -I/usr/include/cryptoauthlib
+VPATH   := ../core
+CFLAGS	+= -I. -I../core -I/usr/lib/cryptoauthlib -I/usr/include/cryptoauthlib -DSTF_DEVICE=1
 #CFLAGS  += -Os -g -std=c89 -ansi -pedantic -MMD
 CFLAGS  += -fsanitize=address -Wall -Wextra -Werror -Wno-unused-parameter -Wno-clobbered -Wno-unused-result
 LDFLAGS	+= -fsanitize=address -g

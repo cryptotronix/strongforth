@@ -1,7 +1,7 @@
 #ifndef zforth_h
 #define zforth_h
 
-#include "zfconf.h"
+#include "strongforth_conf.h"
 
 /* Abort reasons */
 

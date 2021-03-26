@@ -1,29 +1,27 @@
-BIN	:= zforth
+BIN	:= test
 SRC	:= \
-	main.c \
+	common.c \
+	strongforth.c \
 	zforth.c \
 	base32.c \
 	uECC.c \
-	hydrogen.c
+	hydrogen.c \
+	server.c \
+	test.c
 
 OBJS    := $(subst .c,.o, $(SRC))
 DEPS    := $(subst .c,.d, $(SRC))
 
 CC	:= $(CROSS)gcc
 
-VPATH   := ../zforth
-CFLAGS	+= -I. -I../zforth -I/usr/lib/cryptoauthlib -I/usr/include/cryptoauthlib
+VPATH   := ../lib/core
+CFLAGS	+= -I. -I../lib/core -I/usr/lib/cryptoauthlib -I/usr/include/cryptoauthlib -DSTF_SERVER=1
 
 #CFLAGS  += -Os -g -std=c89 -ansi -pedantic -MMD
 CFLAGS  += -fsanitize=address -Wall -Wextra -Werror -Wno-unused-parameter -Wno-clobbered -Wno-unused-result
 LDFLAGS	+= -fsanitize=address -g
 
 LIBS	+= -lm -lcryptoauth
-
-ifndef noreadline
-LIBS	+= -lreadline
-CFLAGS	+= -DUSE_READLINE
-endif
 
 $(BIN): $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
