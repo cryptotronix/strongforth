@@ -313,6 +313,19 @@ static inline void stf_crypto_kdf()
     hydro_kdf_derive_from_key(sub_key, skl, sub_key_id, HYDRO_CONTEXT, master_key);
 }
 
+static inline void stf_debug_copy_buf()
+{
+    uint8_t *a = NULL;
+    uint8_t al = get_crypto_pointer (&a, zf_pop());
+
+    uint8_t *b = NULL;
+    uint8_t bl = get_crypto_pointer (&b, zf_pop());
+
+    assert (al == bl);
+
+    memcpy (b, a, bl);
+}
+
 /*
  * Sys callback function
  */
@@ -392,6 +405,11 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
     		case STF_SYSCALL_KDF:
     		    stf_crypto_kdf();
     		    break;
+
+		case STF_SYSCALL_MEMCOPY:
+		    stf_debug_copy_buf();
+		    break;
+
 
     	    	default:
     	    		LOG("err: unhandled syscall %d\n", id);
