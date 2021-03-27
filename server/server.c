@@ -10,15 +10,15 @@
 #include "server.h"
 #include "uECC.h"
 
-#define STF_SERVER_SYSCALL_GETRAND ZF_SYSCALL_USER + 9
-#define STF_SERVER_SYSCALL_SIGN ZF_SYSCALL_USER + 10
-#define STF_SERVER_SYSCALL_VERIFY ZF_SYSCALL_USER + 11
-#define STF_SERVER_SYSCALL_ECDH ZF_SYSCALL_USER + 12
-#define STF_DEVICE_SYSCALL_GENKEY ZF_SYSCALL_USER + 14
-#define STF_SERVER_SYSCALL_SHA256_INIT ZF_SYSCALL_USER + 40
-#define STF_SERVER_SYSCALL_SHA256_UPDATE ZF_SYSCALL_USER + 41
-#define STF_SERVER_SYSCALL_SHA256_FINALIZE ZF_SYSCALL_USER + 42
-#define STF_SERVER_SYSCALL_ROT2 ZF_SYSCALL_USER + 43
+#define STF_SERVER_SYSCALL_GETRAND ZF_SYSCALL_USER + 21
+#define STF_SERVER_SYSCALL_SIGN ZF_SYSCALL_USER + 22
+#define STF_SERVER_SYSCALL_VERIFY ZF_SYSCALL_USER + 23
+#define STF_SERVER_SYSCALL_ECDH ZF_SYSCALL_USER + 24
+#define STF_DEVICE_SYSCALL_GENKEY ZF_SYSCALL_USER + 25
+#define STF_SERVER_SYSCALL_SHA256_INIT ZF_SYSCALL_USER + 51
+#define STF_SERVER_SYSCALL_SHA256_UPDATE ZF_SYSCALL_USER + 52
+#define STF_SERVER_SYSCALL_SHA256_FINALIZE ZF_SYSCALL_USER + 53
+#define STF_SERVER_SYSCALL_ROT2 ZF_SYSCALL_USER + 54
 
 sw_sha256_ctx g_sha256_ctx;
 
@@ -187,7 +187,7 @@ static inline void stf_server_key_rotation_intermediate(void)
         if (status != ATCA_SUCCESS)
 	{
 		fprintf(stderr, "atcah_nonce() failed: %02x\r\n", status);
-		return;
+		zf_abort(ZF_ABORT_INTERNAL_ERROR);
 	}
 
 	memset(gen_key_other_data, 0, 3);
@@ -203,7 +203,7 @@ static inline void stf_server_key_rotation_intermediate(void)
         if (status != ATCA_SUCCESS)
 	{
 		fprintf(stderr, "atcah_gen_key_msg() failed: %02x\r\n", status);
-		return;
+		zf_abort(ZF_ABORT_INTERNAL_ERROR);
 	}
 
         memset(&sign_params, 0, sizeof(sign_params));
@@ -221,7 +221,7 @@ static inline void stf_server_key_rotation_intermediate(void)
         if (status != ATCA_SUCCESS)
 	{
 		fprintf(stderr, "atcah_sign_internal_msg() failed: %02x\r\n", status);
-		return;
+		zf_abort(ZF_ABORT_INTERNAL_ERROR);
 	}
 }
 
@@ -266,7 +266,7 @@ void stf_server_sys(zf_syscall_id id, const char *input)
 			break;
 
     	    	default:
-    	    		printf("unhandled syscall %d\n", id);
+    	    		LOG("unhandled syscall %d\n", id);
     	    		break;
     }
 }

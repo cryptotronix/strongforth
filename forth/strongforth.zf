@@ -17,35 +17,42 @@
 : b32in   ( reg -- )					132 sys ;
 : b32tell ( reg -- )					133 sys ;
 : shstat  ( -- status )					134 sys ;
-: hydroe ( ciphertext message msgid iv key -- ) 	135 sys ;
-: hydrod ( ciphertext message msgid key -- flag ) 	136 sys ;
+: symkeygen ( key -- ) 					135 sys ;
+: hydroe ( c mlen m msgid key -- ) 			136 sys ;
+: hydrod ( c m msgid key -- t=mlen f=0 ) 		137 sys ;
+: memzero ( buffer -- ) 				138 sys ;
+: rfill ( buffer -- ) 					139 sys ;
+: hydrokdf ( subkey subkeyid masterkey -- ) 		140 sys ;
+: memcpy ( dest src -- ) 				141 sys ;
 
-: getrand ( random -- )					137 sys ;
-: sign    ( digest prislot sig -- )			138 sys ;
-: verify  ( digest pubslot sig -- pass)			139 sys ;
-: ecdh    ( pubkey prislot sharsec -- )			140 sys ;
-: genkey  ( prikey pubkey -- ) 				141 sys ;
+( COMMON W/ DIFFERENT IMPLEMENTATIONS )
+
+: getrand ( random -- )					149 sys ;
+: sign    ( digest prislot sig -- )			150 sys ;
+: verify  ( digest pubslot sig -- pass)			151 sys ;
+: ecdh    ( pubkey prislot sharsec -- )			152 sys ;
+: genkey  ( prikey pubkey -- ) 				153 sys ;
 
 ( DEVICE )
 
-: counter ( -- curval )					142 sys ;
-: cntrinc ( -- curval )					143 sys ;
-: getpub  ( slot pubkey -- )				144 sys ;
-: setpub  ( slot pubkey -- )				145 sys ;
-: getser  ( serial -- )					146 sys ;
-: rot1    ( seed randout pubkey -- keyconf slotconf)	147 sys ;
-: rot3    ( valid verdata gendata sig -- ver)		148 sys ;
-: readpub  ( slot pubkey -- )				149 sys ;
+: counter ( -- curval )					154 sys ;
+: cntrinc ( -- curval )					155 sys ;
+: getpub  ( slot pubkey -- )				156 sys ;
+: setpub  ( slot pubkey -- )				157 sys ;
+: getser  ( serial -- )					158 sys ;
+: rot1    ( seed randout pubkey -- keyconf slotconf)	159 sys ;
+: rot3    ( valid verdata gendata sig -- ver)		160 sys ;
+: readpub  ( slot pubkey -- )				161 sys ;
 
 : 32< b32in ;
 : 32> b32tell ;
 
 ( SERVER )
 
-: sha256i  ( -- ) 168 sys ;
-: sha256u  ( buffer -- ) 169 sys ;
-: sha256f  ( digest -- ) 170 sys ;
-: rot2 ( valid seed randout pubkey serial slotconf keyconf gendata verdata digest -- ) 171 sys ;
+: sha256i  ( -- ) 179 sys ;
+: sha256u  ( buffer -- ) 180 sys ;
+: sha256f  ( digest -- ) 181 sys ;
+: rot2 ( valid seed randout pubkey serial slotconf keyconf gendata verdata digest -- ) 182 sys ;
 
 
 ( dictionary access. These are shortcuts through the primitive operations are !!, @@ and ,, )
@@ -138,14 +145,14 @@ var ran 32 1 + allot
 var dig 32 1 + allot
 
 var shs 32 1 + allot
-var ser 1 + allot
+var ser 9 1 + allot
 var ver 19 1 + allot
 var gen 3 1 + allot
 var see 20 1 + allot
 
-var ctext 64 1 + allot
-var ptext 28 1 + allot
-var key 32 1 + allot
+var c 64 1 + allot
+var m 28 1 + allot
+var k 32 1 + allot
 
 
 ( setting size byte )
@@ -160,9 +167,9 @@ var key 32 1 + allot
 3  gen !u8
 20 see !u8
 
-64 ctext !u8
-28 ptext !u8
-32 key !u8
+64 c !u8
+28 m !u8
+32 k !u8
 
 ( command output wrappers )
 : rot1c rot1 ser getser 0 . ." see 32< " see 32> ." ran 32< " ran 32> ." pub 32< " pub 32> ." ser 32< " ser 32> . . ." gen ver dig rot2"  ;
