@@ -413,6 +413,7 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 
     	    	default:
     	    		LOG("err: unhandled syscall %d\n", id);
+			zf_abort(ZF_ABORT_NOT_A_WORD);
     	    		break;
     	}
     }
