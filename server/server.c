@@ -9,6 +9,7 @@
 #include "common.h"
 #include "server.h"
 #include "uECC.h"
+#include "hydrogen.h"
 
 #define STF_SERVER_SYSCALL_GETRAND ZF_SYSCALL_USER + 21
 #define STF_SERVER_SYSCALL_SIGN ZF_SYSCALL_USER + 22
@@ -26,12 +27,9 @@ static inline void stf_server_get_random(void)
 {
         uint8_t *r;
         int b32len = get_crypto_pointer(&r, zf_pop());
-        assert(32 == b32len);
-        int rd = open("/dev/urandom", O_RDONLY);
-        assert (rd > 0);
+        assert(ATCA_KEY_SIZE == b32len);
 
-        ssize_t result = read(rd, r, 32);
-        assert (result >= 0);
+	hydro_random_buf(r, ATCA_KEY_SIZE);
 }
 
 static inline void stf_server_do_ecdsa_sign(void)
