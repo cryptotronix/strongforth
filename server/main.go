@@ -2,7 +2,7 @@ package main
 
 /*
 #cgo CFLAGS: -g -Wall -I. -I../lib/core -I/usr/lib/cryptoauthlib -I/usr/include/cryptoauthlib
-#cgo LDFLAGS: -fsanitize=address -L. -lcryptoauth -lm -lstrongforthserver
+#cgo LDFLAGS: -fsanitize=address -L. -lcryptoauth -lm -lstf_server
 #include "strongforth.h"
 #include "cryptoauthlib.h"
 */
@@ -34,7 +34,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 			buf := new(bytes.Buffer)
 			buf.ReadFrom(r.Body)
 			bodyStr := buf.String()
-			log.Printf("POST: %v", bodyStr)
+			log.Printf("POST \"%v\"", bodyStr)
 			var stfresp Eval_Resp
 			stfresp = (Eval_Resp)(C.stf_eval(C.CString(bodyStr)))
 			retstr := C.GoString(C.stf_get_retbuf())
@@ -43,10 +43,15 @@ func index(w http.ResponseWriter, r *http.Request) {
 			log.Printf("stf_eval stf_status: %v", stfresp.stf_status)
 
 			if stfresp.rc != 0 {
-				log.Printf("stf_eval failed yo")
+				log.Printf("stf_eval failed")
+				http.Error(w, "Server Error", http.StatusInternalServerError)
 			}
-			
-			log.Printf("%v", retstr)
+
+			log.Printf("stf_eval retbuf: \"%v\"", retstr)
+
+			if len(retstr) == 0 {
+				w.WriteHeader(http.StatusNoContent)
+			}
 			io.WriteString(w, retstr)
 		default:
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
