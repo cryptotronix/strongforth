@@ -1,7 +1,12 @@
 cmake_minimum_required(VERSION 3.1.0)
 project(stf_server C)
 
+# Default install root which is normally /usr/local/
+set(CMAKE_INSTALL_PREFIX "/" CACHE INTERNAL "")
+
 include(GNUInstallDirs)
+
+set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Default build type" FORCE)
 
 set(DEFAULT_LIB_PATH "${CMAKE_INSTALL_FULL_LIBDIR}" CACHE STRING "default absolute lib path")
 set(DEFAULT_INC_PATH )
@@ -31,6 +36,6 @@ target_link_libraries(${PROJECT_NAME} cryptoauth m)
 set_target_properties(${PROJECT_NAME} PROPERTIES PUBLIC_HEADER ../lib/core/strongforth.h)
 
 install(TARGETS ${PROJECT_NAME} 
-    LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
-    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR} COMPONENT Libraries
+    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} COMPONENT Development
 )

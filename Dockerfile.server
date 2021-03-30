@@ -7,7 +7,7 @@ RUN apt update && apt install -y \
 
 WORKDIR /root
 
-RUN wget -c https://github.com/MicrochipTech/cryptoauthlib/archive/refs/tags/v${CRYPTOAUTHLIB_RELEASE}.tar.gz -O - | tar xz \
+RUN wget -qc https://github.com/MicrochipTech/cryptoauthlib/archive/refs/tags/v${CRYPTOAUTHLIB_RELEASE}.tar.gz -O - | tar xz \
     && cd cryptoauthlib-${CRYPTOAUTHLIB_RELEASE} \
     && cmake -B ./build . \
     && cmake --build ./build \
@@ -22,3 +22,10 @@ RUN cd /go/src/strongforth/server \
     && cmake --build ./build \
     && cmake --build ./build --target install
 
+RUN cd /go/src/strongforth/server \
+    && go build main.go
+
+WORKDIR /go/src/strongforth/server
+
+EXPOSE 8080
+CMD ["/go/src/strongforth/server/main"]
