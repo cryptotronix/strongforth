@@ -14,16 +14,16 @@
 ( COMMON )
 
 ( when b32in is called, next number pushed is interpreted as base32 and puts addr on stack )
-: b32in   ( reg -- )					132 sys ;
-: b32tell ( reg -- )					133 sys ;
-: shstat  ( -- status )					134 sys ;
-: symkeygen ( key -- ) 					135 sys ;
-: hydroe ( c mlen m msgid key -- ) 			136 sys ;
-: hydrod ( c m msgid key -- t=mlen f=0 ) 		137 sys ;
-: memzero ( buffer -- ) 				138 sys ;
-: rfill ( buffer -- ) 					139 sys ;
-: hydrokdf ( subkey subkeyid masterkey -- ) 		140 sys ;
-: memcpy ( dest src -- ) 				141 sys ;
+: b32in   	( reg -- )				132 sys ;
+: b32tell 	( reg -- )				133 sys ;
+: shstat  	( -- status )				134 sys ;
+: symkeygen 	( key -- ) 				135 sys ;
+: hydroe 	( c mlen m msgid key -- ) 		136 sys ;
+: hydrod 	( c m msgid key -- t=mlen f=0 ) 	137 sys ;
+: memzero 	( buffer -- ) 				138 sys ;
+: rfill 	( buffer -- ) 				139 sys ;
+: hydrokdf 	( subkey subkeyid masterkey -- ) 	140 sys ;
+: memcpy 	( dest src -- ) 			141 sys ;
 
 ( COMMON W/ DIFFERENT IMPLEMENTATIONS )
 
@@ -42,17 +42,19 @@
 : getser  ( serial -- )					158 sys ;
 : rot1    ( seed randout pubkey -- keyconf slotconf)	159 sys ;
 : rot3    ( valid verdata gendata sig -- ver)		160 sys ;
-: readpub  ( slot pubkey -- )				161 sys ;
+: readpub ( slot pubkey -- )				161 sys ;
+: aa2  	  ( random digest -- )				162 sys ;
 
 : 32< b32in ;
 : 32> b32tell ;
 
 ( SERVER )
 
-: sha256i  ( -- ) 179 sys ;
-: sha256u  ( buffer -- ) 180 sys ;
-: sha256f  ( digest -- ) 181 sys ;
-: rot2 ( valid seed randout pubkey serial slotconf keyconf gendata verdata digest -- ) 182 sys ;
+: sha256i  ( -- ) 									179 sys ;
+: sha256u  ( buffer -- ) 								180 sys ;
+: sha256f  ( digest -- ) 								181 sys ;
+: rot2 ( valid seed randout pubkey serial slotconf keyconf gendata verdata digest -- )	182 sys ;
+: aa3 ( random counter sig -- verified )						183 sys ;
 
 
 ( dictionary access. These are shortcuts through the primitive operations are !!, @@ and ,, )
@@ -173,6 +175,8 @@ var k 32 1 + allot
 
 ( command output wrappers )
 : rot1c rot1 ser getser 0 . ." see 32< " see 32> ." ran 32< " ran 32> ." pub 32< " pub 32> ." ser 32< " ser 32> . . ." gen ver dig rot2"  ;
+: aa1c ran dup getrand ." ran 32< " 32> ." ran dig aa2c";
+: aa2c aa2 dig 0 sig sign ." ran 32< " ran 32> ." counter . ." sig 32< " sig 32> ." aa3";
 
 
 ( methods for handling the dictionary )

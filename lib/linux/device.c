@@ -1,6 +1,9 @@
+#include <crypto/hashes/sha2_routines.h>
+
 #include "strongforth.h"
 #include "common.h"
 #include "device.h"
+#include "impl/common.h"
 
 #define STF_DEVICE_SYSCALL_GETRAND ZF_SYSCALL_USER + 21
 #define STF_DEVICE_SYSCALL_SIGN ZF_SYSCALL_USER + 22
@@ -15,6 +18,9 @@
 #define STF_DEVICE_SYSCALL_ROT1 ZF_SYSCALL_USER + 31
 #define STF_DEVICE_SYSCALL_ROT3 ZF_SYSCALL_USER + 32
 #define STF_DEVICE_SYSCALL_READPUB ZF_SYSCALL_USER + 33
+#define STF_DEVICE_SYSCALL_AA2 ZF_SYSCALL_USER + 34
+
+sw_sha256_ctx g_sha256_ctx;
 
 static inline void stf_device_get_random(void)
 {
@@ -362,8 +368,7 @@ static inline void stf_device_key_rotate(void)
 static inline void stf_device_read_pubkey_slot(void)
 {
     uint8_t *pubkey;
-    zf_addr pk_addr = zf_pop();
-    uint8_t pklen = get_crypto_pointer(&pubkey, pk_addr);
+    uint8_t pklen = get_crypto_pointer(&pubkey, zf_pop());
 
     if (pklen != ATCA_ECCP256_PUBKEY_SIZE)
     {
@@ -377,6 +382,46 @@ static inline void stf_device_read_pubkey_slot(void)
         LOG("atcab_read_pubkey() failed: %02x\r\n", status);
 	zf_abort(ZF_ABORT_INTERNAL_ERROR);
     }
+}
+
+static inline void stf_device_acessory_auth_sign(void)
+{
+    uint8_t *digest;
+    uint8_t d_len = get_crypto_pointer(&digest, zf_pop());
+
+    uint8_t *random;
+    uint8_t r_len = get_crypto_pointer(&random, zf_pop());
+
+    uint8_t counter_buf[4] = {0};
+
+    uint32_t counter;
+
+    if (d_len != ATCA_SHA256_DIGEST_SIZE)
+    {
+        LOG("digest buf not 32 bytes.");
+	zf_abort(ZF_ABORT_INVALID_SIZE);
+    }
+
+    if (r_len != ATCA_KEY_SIZE)
+    {
+        LOG("rand buf not 32 bytes.");
+	zf_abort(ZF_ABORT_INVALID_SIZE);
+    }
+
+    ATCA_STATUS status = atcab_counter_read(1, &counter);
+    if (status != ATCA_SUCCESS)
+    {
+        LOG("atcab_counter_read() failed: %02x\r\n", status);
+	zf_abort(ZF_ABORT_INTERNAL_ERROR);
+    }
+
+    STORE32_LE(counter_buf, counter);
+
+    sw_sha256_init(&g_sha256_ctx);
+    sw_sha256_update(&g_sha256_ctx, counter_buf, 4);
+    sw_sha256_update(&g_sha256_ctx, random, r_len);
+    sw_sha256_final(&g_sha256_ctx, digest);
+    sw_sha256_update(&g_sha256_ctx, digest, d_len);
 }
 
 void stf_device_sys(zf_syscall_id id, const char *input)
@@ -433,6 +478,10 @@ void stf_device_sys(zf_syscall_id id, const char *input)
 
 		case STF_DEVICE_SYSCALL_READPUB:
 			stf_device_read_pubkey_slot();
+			break;
+
+		case STF_DEVICE_SYSCALL_AA2:
+			stf_device_acessory_auth_sign();
 			break;
 
     	    	default:

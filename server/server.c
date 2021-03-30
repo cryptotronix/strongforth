@@ -3,6 +3,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include <crypto/hashes/sha2_routines.h>
 #include <cryptoauthlib/host/atca_host.h>
 
 #include "strongforth.h"
@@ -20,6 +21,7 @@
 #define STF_SERVER_SYSCALL_SHA256_UPDATE ZF_SYSCALL_USER + 52
 #define STF_SERVER_SYSCALL_SHA256_FINALIZE ZF_SYSCALL_USER + 53
 #define STF_SERVER_SYSCALL_ROT2 ZF_SYSCALL_USER + 54
+#define STF_SERVER_SYSCALL_AA3 ZF_SYSCALL_USER + 55
 
 sw_sha256_ctx g_sha256_ctx;
 
@@ -223,6 +225,12 @@ static inline void stf_server_key_rotation_intermediate(void)
 	}
 }
 
+static inline void stf_device_acessory_auth_verify(void)
+{
+	//TODO 
+}
+
+
 void stf_server_sys(zf_syscall_id id, const char *input)
 {
 	switch((int)id)
@@ -261,6 +269,10 @@ void stf_server_sys(zf_syscall_id id, const char *input)
 
 		case STF_SERVER_SYSCALL_ROT2:
 			stf_server_key_rotation_intermediate();
+			break;
+
+		case STF_SERVER_SYSCALL_AA3:
+			stf_server_acessory_auth_verify();
 			break;
 
     	    	default:
