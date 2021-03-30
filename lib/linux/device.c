@@ -386,8 +386,13 @@ static inline void stf_device_read_pubkey_slot(void)
 
 static inline void stf_device_acessory_auth_sign(void)
 {
+#define AA_SIGN_SLOT 0
+
+    zf_cell sig_addr = zf_pop();
+
     uint8_t *digest;
-    uint8_t d_len = get_crypto_pointer(&digest, zf_pop());
+    zf_cell d_addr = zf_pop();
+    uint8_t d_len = get_crypto_pointer(&digest, d_addr);
 
     uint8_t *random;
     uint8_t r_len = get_crypto_pointer(&random, zf_pop());
@@ -418,10 +423,15 @@ static inline void stf_device_acessory_auth_sign(void)
     STORE32_LE(counter_buf, counter);
 
     sw_sha256_init(&g_sha256_ctx);
-    sw_sha256_update(&g_sha256_ctx, counter_buf, 4);
     sw_sha256_update(&g_sha256_ctx, random, r_len);
+    sw_sha256_update(&g_sha256_ctx, counter_buf, 4);
     sw_sha256_final(&g_sha256_ctx, digest);
     sw_sha256_update(&g_sha256_ctx, digest, d_len);
+
+    zf_push(d_addr);
+    zf_push(AA_SIGN_SLOT);
+    zf_push(sig_addr);
+    stf_device_do_ecdsa_sign();
 }
 
 void stf_device_sys(zf_syscall_id id, const char *input)

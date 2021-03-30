@@ -155,11 +155,12 @@ static inline void stf_b32tell(void)
     zf_addr addr = zf_pop();
     uint8_t *data;
     zf_cell len = get_crypto_pointer(&data, addr);
+    size_t encoded_len = (((len * 8) + (5 - ((len * 8) % 5))) / 5);
 
-    char *retbuf = allot_retbuf(len + 1);
+    char *retbuf = allot_retbuf(encoded_len + 1);
     if (retbuf){
-    	base32_encode(data, len, (uint8_t *) retbuf, len);
-	memset(retbuf + len, ' ', 1);
+    	base32_encode(data, len, (uint8_t *) retbuf, encoded_len);
+	memset(retbuf + encoded_len, ' ', 1);
     }
 }
 
@@ -350,7 +351,7 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 
     	    	/* Application specific callbacks */
     	    	case STF_SYSCALL_EXIT:
-    	        		exit(0);
+			exit(0);
     	    		break;
 
     	    	case STF_SYSCALL_SIN:
@@ -379,37 +380,36 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 			break;
 
 		case STF_SYSCALL_GETSTATUS:
-		    zf_push(get_strongforth_status());
-		    break;
+			zf_push(get_strongforth_status());
+			break;
 
     		case STF_SYSCALL_SECRETBOX_KEYGEN:
-    		    stf_crypto_secretbox_keygen();
-    		    break;
+			stf_crypto_secretbox_keygen();
+			break;
 
     		case STF_SYSCALL_SECRETBOX_ENCRYPT:
-    		    stf_crypto_secretbox_encrypt();
-    		    break;
+    			stf_crypto_secretbox_encrypt();
+    			break;
 
     		case STF_SYSCALL_SECRETBOX_DECRYPT:
-    		    stf_crypto_secretbox_decrypt();
-    		    break;
+    			stf_crypto_secretbox_decrypt();
+    			break;
 
     		case STF_SYSCALL_MEMZERO:
-    		    stf_crypto_memzero();
-    		    break;
+    			stf_crypto_memzero();
+   			break;
 
     		case STF_SYSCALL_RANDOM_FILL:
-    		    stf_crypto_random_fill();
-    		    break;
+    			stf_crypto_random_fill();
+    			break;
 
     		case STF_SYSCALL_KDF:
-    		    stf_crypto_kdf();
-    		    break;
+   			stf_crypto_kdf();
+    			break;
 
 		case STF_SYSCALL_MEMCOPY:
-		    stf_debug_copy_buf();
-		    break;
-
+			stf_debug_copy_buf();
+			break;
 
     	    	default:
     	    		LOG("err: unhandled syscall %d\n", id);
@@ -457,6 +457,7 @@ zf_cell zf_host_parse_num(const char *buf)
         int8_t b32len;
         int8_t decolen;
         zf_addr addr;
+
 
         if (B32_INPUT != 0)
         {

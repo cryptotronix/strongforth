@@ -15,7 +15,7 @@ DEPS    := $(subst .c,.d, $(SRC))
 CC	:= $(CROSS)gcc
 
 VPATH   := ../lib/core
-CFLAGS	+= -I. -I../lib/core -I/usr/lib/cryptoauthlib -I/usr/include/cryptoauthlib -DSTF_SERVER=1
+CFLAGS	+= -I. -I../lib/core -I/usr/lib/cryptoauthlib -I/usr/include/cryptoauthlib -DSTF_SERVER=1 -DSTF_LOGGING=1
 
 #CFLAGS  += -Os -g -std=c89 -ansi -pedantic -MMD
 CFLAGS  += -fsanitize=address -Wall -Wextra -Werror -Wno-unused-parameter -Wno-clobbered -Wno-unused-result

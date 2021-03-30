@@ -11,6 +11,7 @@
 #include "server.h"
 #include "uECC.h"
 #include "hydrogen.h"
+#include "impl/common.h"
 
 #define STF_SERVER_SYSCALL_GETRAND ZF_SYSCALL_USER + 21
 #define STF_SERVER_SYSCALL_SIGN ZF_SYSCALL_USER + 22
@@ -225,9 +226,55 @@ static inline void stf_server_key_rotation_intermediate(void)
 	}
 }
 
-static inline void stf_device_acessory_auth_verify(void)
+static inline void stf_device_acessory_auth_verification(void)
 {
-	//TODO 
+    uint8_t *sig;
+    zf_cell s_addr = zf_pop();
+    uint8_t s_len = get_crypto_pointer(&sig, s_addr);
+
+    zf_cell pub_addr = zf_pop();
+
+    uint8_t *digest;
+    zf_cell d_addr = zf_pop();
+    uint8_t d_len = get_crypto_pointer(&digest, d_addr);
+
+    uint32_t counter = zf_pop();
+
+    uint8_t *random;
+    uint8_t r_len = get_crypto_pointer(&random, zf_pop());
+
+    uint8_t counter_buf[4] = {0};
+
+    if (s_len != ATCA_ECCP256_SIG_SIZE)
+    {
+        LOG("sig buf not 64 bytes.");
+	zf_abort(ZF_ABORT_INVALID_SIZE);
+    }
+
+    if (d_len != ATCA_SHA256_DIGEST_SIZE)
+    {
+        LOG("digest buf not 32 bytes.");
+	zf_abort(ZF_ABORT_INVALID_SIZE);
+    }
+
+    if (r_len != ATCA_KEY_SIZE)
+    {
+        LOG("rand buf not 32 bytes.");
+	zf_abort(ZF_ABORT_INVALID_SIZE);
+    }
+
+    STORE32_LE(counter_buf, counter);
+
+    sw_sha256_init(&g_sha256_ctx);
+    sw_sha256_update(&g_sha256_ctx, random, r_len);
+    sw_sha256_update(&g_sha256_ctx, counter_buf, 4);
+    sw_sha256_final(&g_sha256_ctx, digest);
+    sw_sha256_update(&g_sha256_ctx, digest, d_len);
+
+    zf_push(d_addr);
+    zf_push(pub_addr);
+    zf_push(s_addr);
+    stf_server_do_ecdsa_verify();
 }
 
 
@@ -272,7 +319,7 @@ void stf_server_sys(zf_syscall_id id, const char *input)
 			break;
 
 		case STF_SERVER_SYSCALL_AA3:
-			stf_server_acessory_auth_verify();
+			stf_device_acessory_auth_verification();
 			break;
 
     	    	default:
