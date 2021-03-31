@@ -60,7 +60,7 @@ static char* allot_retbuf (size_t len)
 {
 	if (RETBUF_INDEX + len > (sizeof(RETURN_BUF) - 2))
 	{
-		LOG("no space left in return buffer!")
+		LOG("no space left in return buffer!");
 		return NULL;
 	}
         RETBUF_INDEX = RETBUF_INDEX + len;
@@ -71,7 +71,7 @@ static int retbuf_putchar (char c)
 {
 	if (RETBUF_INDEX > (sizeof(RETURN_BUF) - 2))
 	{
-		LOG("no space left in return buffer!")
+		LOG("no space left in return buffer!");
 		return 1;
 	}
 	RETURN_BUF[RETBUF_INDEX++] = c;
