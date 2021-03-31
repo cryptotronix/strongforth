@@ -46,7 +46,7 @@
 : rot1i    ( seed randout pubkey -- keyconf slotconf)	159 sys ;
 : rot3i    ( valid verdata gendata sig -- ver)		160 sys ;
 : readpub ( slot pubkey -- )				161 sys ;
-: cda	  ( digest sig -- )				162 sys ;
+: cda	  ( counter command cmd_dig sig -- )		162 sys ;
 
 : 32< b32in ;
 : 32> b32tell ;
@@ -186,9 +186,11 @@ var k 32 1 + allot
 	." aa3" ;
 
 : cda2 ( -- ) cnt cntrinc sha256i cnt sha256u dig sha256f dig 0 sig sign
-	." sig 32< " sig 32>
-	." cnt 32< " cnt 32>
+	." sig:" sig 32>
+	." count:" cnt 32>
  ;
+
+: cda4 cda ;
 
 ( SERVER FLOW COMMANDS)
 
@@ -200,6 +202,15 @@ var k 32 1 + allot
 : cda1 ( -- ) ." cda2";
 
 : cda3 ( -- ) ." cda4";
+
+( A test command, that assumes the command is stored in ran )
+: cda3.5  sha256i ran sha256u dig sha256f
+	." cnt 32<" cnt 32>
+	." ran 32<" ran 32>
+	." dig 32<" dig 32>
+	sha256i dig sha256u cnt sha256u dig sha256f dig pri sig sign
+	." sig 32<" sig 32>
+	." cnt ran dig sig cda4" ;
 
 
 ( methods for handling the dictionary )

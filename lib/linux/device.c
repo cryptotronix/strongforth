@@ -455,7 +455,7 @@ static inline void stf_device_cloud_device_auth(void)
 
     if ((uint32_t) *internal_count != (uint32_t) *counter)
     {
-        LOG("err: counter mismatch");
+        LOG("err: counter mismatch\n");
 	zf_abort(ZF_ABORT_INTERNAL_ERROR);
     }
 
@@ -470,7 +470,7 @@ static inline void stf_device_cloud_device_auth(void)
     zf_push(14);
     zf_push(sigaddr);
 
-    stf_device_do_ecdsa_sign();
+    stf_device_do_ecdsa_verify();
 
     zf_cell success = zf_pop();
 
@@ -478,7 +478,7 @@ static inline void stf_device_cloud_device_auth(void)
 	    stf_eval( (char*) command);
     else
     {
-        LOG("err: sig invalid");
+        LOG("err: sig invalid\n");
 	zf_abort(ZF_ABORT_INTERNAL_ERROR);
     }
 }
