@@ -11,25 +11,41 @@
 
 ( custom system calls )
 
-: dtell   ( reg -- )			132 sys ;
+( COMMON )
+
 ( when b32in is called, next number pushed is interpreted as base32 and puts addr on stack )
-: b32in   ( reg -- )			133 sys ;
-: b32tell ( reg -- )			134 sys ;
-: init    ( -- )			135 sys ;
-: getrand ( random -- )			136 sys ;
-: counter ( -- curval )			137 sys ;
-: cntrinc ( -- curval )			138 sys ;
-: sign    ( digest prislot sig -- )	139 sys ;
-: verify  ( digest pubslot sig -- pass)	140 sys ;
-: getpub  ( slot pubkey -- )		141 sys ;
-: setpub  ( slot pubkey -- )		142 sys ;
-: ecdh    ( pubkey prislot sharsec -- )	143 sys ;
-: shstat  ( -- status )			144 sys ;
-: getser  ( serial -- )			145 sys ;
+: b32in   ( reg -- )					132 sys ;
+: b32tell ( reg -- )					133 sys ;
+: shstat  ( -- status )					134 sys ;
+: hydroe ( ciphertext message msgid iv key -- ) 	135 sys ;
+: hydrod ( ciphertext message msgid key -- flag ) 	136 sys ;
 
+: getrand ( random -- )					137 sys ;
+: sign    ( digest prislot sig -- )			138 sys ;
+: verify  ( digest pubslot sig -- pass)			139 sys ;
+: ecdh    ( pubkey prislot sharsec -- )			140 sys ;
+: genkey  ( prikey pubkey -- ) 				141 sys ;
 
-: genkey  ( prikey pubkey -- ) 158 sys ;
+( DEVICE )
 
+: counter ( -- curval )					142 sys ;
+: cntrinc ( -- curval )					143 sys ;
+: getpub  ( slot pubkey -- )				144 sys ;
+: setpub  ( slot pubkey -- )				145 sys ;
+: getser  ( serial -- )					146 sys ;
+: rot1    ( seed randout pubkey -- keyconf slotconf)	147 sys ;
+: rot3    ( valid verdata gendata sig -- ver)		148 sys ;
+: readpub  ( slot pubkey -- )				149 sys ;
+
+: 32< b32in ;
+: 32> b32tell ;
+
+( SERVER )
+
+: sha256i  ( -- ) 168 sys ;
+: sha256u  ( buffer -- ) 169 sys ;
+: sha256f  ( digest -- ) 170 sys ;
+: rot2 ( valid seed randout pubkey serial slotconf keyconf gendata verdata digest -- ) 171 sys ;
 
 
 ( dictionary access. These are shortcuts through the primitive operations are !!, @@ and ,, )
@@ -115,23 +131,42 @@
 
 ( crypto registers for big numbers )
 
-var pubkey 64 1 + allot
+var pub 64 1 + allot
+var pri 32 1 + allot
 var sig 64 1 + allot
-var random 32 1 + allot
-var digest 32 1 + allot
-var prikey 32 1 + allot
+var ran 32 1 + allot
+var dig 32 1 + allot
 
-var sharsec 32 1 + allot
-var serial 9 1 + allot
+var shs 32 1 + allot
+var ser 1 + allot
+var ver 19 1 + allot
+var gen 3 1 + allot
+var see 20 1 + allot
+
+var ctext 64 1 + allot
+var ptext 28 1 + allot
+var key 32 1 + allot
+
 
 ( setting size byte )
-64 pubkey !u8
+64 pub !u8
 64 sig !u8
-32 random !u8
-32 digest !u8
-32 prikey !u8
-32 sharsec !u8
-9 serial !u8
+32 ran !u8
+32 dig !u8
+32 pri !u8
+32 shs !u8
+9  ser !u8
+19 ver !u8
+3  gen !u8
+20 see !u8
+
+64 ctext !u8
+28 ptext !u8
+32 key !u8
+
+( command output wrappers )
+: rot1c rot1 ser getser 0 . ." see 32< " see 32> ." ran 32< " ran 32> ." pub 32< " pub 32> ." ser 32< " ser 32> . . ." gen ver dig rot2"  ;
+
 
 ( methods for handling the dictionary )
 
@@ -145,12 +180,7 @@ var serial 9 1 + allot
 : name dup @ 31 & swap next dup next rot tell @ ;
 : words latest @ begin name 32 emit dup 0 = until cr drop ;
 
-
-." Welcome to strongForth, " here . ." bytes used" cr ;
-
-
 (
 vi: ts=3 sw=3 ft=forth
 )
-
 
