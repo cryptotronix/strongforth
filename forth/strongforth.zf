@@ -24,6 +24,9 @@
 : rfill 	( buffer -- ) 				139 sys ;
 : hydrokdf 	( subkey subkeyid masterkey -- ) 	140 sys ;
 : memcpy 	( dest src -- ) 			141 sys ;
+: sha256i  ( -- ) 					142 sys ;
+: sha256u  ( buffer -- ) 				143 sys ;
+: sha256f  ( digest -- ) 				144 sys ;
 
 ( COMMON W/ DIFFERENT IMPLEMENTATIONS )
 
@@ -35,26 +38,23 @@
 
 ( DEVICE )
 
-: counter ( -- curval )					154 sys ;
-: cntrinc ( -- curval )					155 sys ;
+: counter ( countbuf --  )				154 sys ;
+: cntrinc ( countbuf --  )				155 sys ;
 : getpub  ( slot pubkey -- )				156 sys ;
 : setpub  ( slot pubkey -- )				157 sys ;
 : getser  ( serial -- )					158 sys ;
-: rot1    ( seed randout pubkey -- keyconf slotconf)	159 sys ;
-: rot3    ( valid verdata gendata sig -- ver)		160 sys ;
+: rot1i    ( seed randout pubkey -- keyconf slotconf)	159 sys ;
+: rot3i    ( valid verdata gendata sig -- ver)		160 sys ;
 : readpub ( slot pubkey -- )				161 sys ;
-: aa2  	  ( random digest sig -- )			162 sys ;
+: cda	  ( digest sig -- )				162 sys ;
 
 : 32< b32in ;
 : 32> b32tell ;
 
 ( SERVER )
 
-: sha256i  ( -- ) 									179 sys ;
-: sha256u  ( buffer -- ) 								180 sys ;
-: sha256f  ( digest -- ) 								181 sys ;
-: rot2 ( valid seed randout pubkey serial slotconf keyconf gendata verdata digest -- )	182 sys ;
-: aa3 ( random counter digest pubkey sig -- verified )						183 sys ;
+: rot2i ( valid seed randout pubkey serial slotconf keyconf gendata verdata digest -- )	179 sys ;
+: aa3 ( random counter digest pubkey sig -- verified )					180 sys ;
 
 
 ( dictionary access. These are shortcuts through the primitive operations are !!, @@ and ,, )
@@ -145,6 +145,7 @@ var pri 32 1 + allot
 var sig 64 1 + allot
 var ran 32 1 + allot
 var dig 32 1 + allot
+var cnt 4 1 + allot
 
 var shs 32 1 + allot
 var ser 9 1 + allot
@@ -168,15 +169,37 @@ var k 32 1 + allot
 19 ver !u8
 3  gen !u8
 20 see !u8
+4  cnt !u8
 
 64 c !u8
 28 m !u8
 32 k !u8
 
-( command output wrappers )
-: rot1c rot1 ser getser 0 . ." see 32< " see 32> ." ran 32< " ran 32> ." pub 32< " pub 32> ." ser 32< " ser 32> . . ." gen ver dig rot2"  ;
-: aa1c ran dup getrand ." ran 32< " 32> ." ran dig aa2c";
-: aa2c aa2 ." ran 32< " ran 32> ." sig 32< " sig 32> ." ran " counter . ." dig pub sig aa3";
+( DEVICE FLOW COMMANDS)
+: rot1 rot1i ser getser 0 . ." see 32< " see 32> ." ran 32< " ran 32> ." pub 32< " pub 32> ." ser 32< " ser 32> . . ." gen ver dig rot2"  ;
+
+: aa2 ( -- ) sha256i ran sha256u cnt counter cnt sha256u dig sha256f dig 0 sig sign 0 pub getpub
+	." ran 32< " ran 32>
+	." sig 32< " sig 32>
+	." cnt 32< " cnt 32>
+	." pub 32< " pub 32>
+	." aa3" ;
+
+: cda2 ( -- ) cnt cntrinc sha256i cnt sha256u dig sha256f dig 0 sig sign
+	." sig 32< " sig 32>
+	." cnt 32< " cnt 32>
+ ;
+
+( SERVER FLOW COMMANDS)
+
+: aa1 ( -- ) ran dup getrand
+	." ran 32< " 32> ." aa2";
+
+: aa3 ( -- ) sha256i ran sha256u cnt sha256u dig sha256f dig pub sig verify . ;
+
+: cda1 ( -- ) ." cda2";
+
+: cda3 ( -- ) ." cda4";
 
 
 ( methods for handling the dictionary )

@@ -6,6 +6,7 @@
 #include <getopt.h>
 #include <math.h>
 #include <unistd.h>
+#include <crypto/hashes/sha2_routines.h>
 
 #include "strongforth.h"
 #include "base32.h"
@@ -34,16 +35,21 @@
 #define STF_SYSCALL_B32IN ZF_SYSCALL_USER + 4
 #define STF_SYSCALL_B32TELL ZF_SYSCALL_USER + 5
 #define STF_SYSCALL_GETSTATUS ZF_SYSCALL_USER + 6
-#define STF_SYSCALL_SECRETBOX_KEYGEN ZF_SYSCALL_USER + 9
-#define STF_SYSCALL_SECRETBOX_ENCRYPT ZF_SYSCALL_USER + 10
-#define STF_SYSCALL_SECRETBOX_DECRYPT ZF_SYSCALL_USER + 11
-#define STF_SYSCALL_MEMZERO ZF_SYSCALL_USER + 12
-#define STF_SYSCALL_RANDOM_FILL ZF_SYSCALL_USER + 13
-#define STF_SYSCALL_KDF ZF_SYSCALL_USER + 14
-#define STF_SYSCALL_MEMCOPY ZF_SYSCALL_USER + 15
+#define STF_SYSCALL_SECRETBOX_KEYGEN ZF_SYSCALL_USER + 7
+#define STF_SYSCALL_SECRETBOX_ENCRYPT ZF_SYSCALL_USER + 8
+#define STF_SYSCALL_SECRETBOX_DECRYPT ZF_SYSCALL_USER + 9
+#define STF_SYSCALL_MEMZERO ZF_SYSCALL_USER + 10
+#define STF_SYSCALL_RANDOM_FILL ZF_SYSCALL_USER + 11
+#define STF_SYSCALL_KDF ZF_SYSCALL_USER + 12
+#define STF_SYSCALL_MEMCOPY ZF_SYSCALL_USER + 13
+#define STF_SERVER_SYSCALL_SHA256_INIT ZF_SYSCALL_USER + 14
+#define STF_SERVER_SYSCALL_SHA256_UPDATE ZF_SYSCALL_USER + 15
+#define STF_SERVER_SYSCALL_SHA256_FINALIZE ZF_SYSCALL_USER + 16
 
 /* syscall ranges */
 #define STF_SYSCALLS_COMMON ZF_SYSCALL_USER + 20
+
+sw_sha256_ctx g_sha256_ctx;
 
 static zf_addr B32_INPUT = 0;
 
@@ -53,7 +59,10 @@ static size_t RETBUF_INDEX = 0;
 static char* allot_retbuf (size_t len)
 {
 	if (RETBUF_INDEX + len > (sizeof(RETURN_BUF) - 2))
+	{
+		LOG("no space left in return buffer!")
 		return NULL;
+	}
         RETBUF_INDEX = RETBUF_INDEX + len;
 	return RETURN_BUF + (RETBUF_INDEX - len);
 }
@@ -61,7 +70,10 @@ static char* allot_retbuf (size_t len)
 static int retbuf_putchar (char c)
 {
 	if (RETBUF_INDEX > (sizeof(RETURN_BUF) - 2))
+	{
+		LOG("no space left in return buffer!")
 		return 1;
+	}
 	RETURN_BUF[RETBUF_INDEX++] = c;
 	return 0;
 }
@@ -327,6 +339,31 @@ static inline void stf_debug_copy_buf()
     memcpy (b, a, bl);
 }
 
+static inline void stf_server_sha256_init(void)
+{
+        sw_sha256_init(&g_sha256_ctx);
+}
+
+static inline void stf_server_sha256_update(void)
+{
+        uint8_t *p;
+        int p_len = get_crypto_pointer(&p, zf_pop());
+
+        sw_sha256_update(&g_sha256_ctx, p, p_len);
+}
+
+static inline void stf_server_sha256_finalize(void)
+{
+        uint8_t *p;
+        int p_len = get_crypto_pointer(&p, zf_pop());
+        assert (32 == p_len);
+
+        sw_sha256_final(&g_sha256_ctx, p);
+
+
+        sw_sha256_update(&g_sha256_ctx, p, p_len);
+}
+
 /*
  * Sys callback function
  */
@@ -409,6 +446,18 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 
 		case STF_SYSCALL_MEMCOPY:
 			stf_debug_copy_buf();
+			break;
+
+		case STF_SERVER_SYSCALL_SHA256_INIT:
+			stf_server_sha256_init();
+			break;
+
+		case STF_SERVER_SYSCALL_SHA256_UPDATE:
+			stf_server_sha256_update();
+			break;
+
+		case STF_SERVER_SYSCALL_SHA256_FINALIZE:
+			stf_server_sha256_finalize();
 			break;
 
     	    	default:

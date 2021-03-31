@@ -8,7 +8,7 @@
 
 /* Sets the length of the return buffer from strongforth */
 
-#define STF_RETURN_BUF_LEN 300
+#define STF_RETURN_BUF_LEN 450
 
 /* buffer size for reading in instruction files */
 

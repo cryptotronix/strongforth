@@ -3,7 +3,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include <crypto/hashes/sha2_routines.h>
 #include <cryptoauthlib/host/atca_host.h>
 
 #include "strongforth.h"
@@ -18,13 +17,7 @@
 #define STF_SERVER_SYSCALL_VERIFY ZF_SYSCALL_USER + 23
 #define STF_SERVER_SYSCALL_ECDH ZF_SYSCALL_USER + 24
 #define STF_DEVICE_SYSCALL_GENKEY ZF_SYSCALL_USER + 25
-#define STF_SERVER_SYSCALL_SHA256_INIT ZF_SYSCALL_USER + 51
-#define STF_SERVER_SYSCALL_SHA256_UPDATE ZF_SYSCALL_USER + 52
-#define STF_SERVER_SYSCALL_SHA256_FINALIZE ZF_SYSCALL_USER + 53
-#define STF_SERVER_SYSCALL_ROT2 ZF_SYSCALL_USER + 54
-#define STF_SERVER_SYSCALL_AA3 ZF_SYSCALL_USER + 55
-
-sw_sha256_ctx g_sha256_ctx;
+#define STF_SERVER_SYSCALL_ROT2 ZF_SYSCALL_USER + 51
 
 static inline void stf_server_get_random(void)
 {
@@ -101,31 +94,6 @@ static inline void stf_server_do_genkey(void)
 
         int rc = uECC_make_key(pubkey, prikey);
         assert(1 == rc);
-}
-
-static inline void stf_server_sha256_init(void)
-{
-        sw_sha256_init(&g_sha256_ctx);
-}
-
-static inline void stf_server_sha256_update(void)
-{
-        uint8_t *p;
-        int p_len = get_crypto_pointer(&p, zf_pop());
-
-        sw_sha256_update(&g_sha256_ctx, p, p_len);
-}
-
-static inline void stf_server_sha256_finalize(void)
-{
-        uint8_t *p;
-        int p_len = get_crypto_pointer(&p, zf_pop());
-        assert (32 == p_len);
-
-        sw_sha256_final(&g_sha256_ctx, p);
-
-
-        sw_sha256_update(&g_sha256_ctx, p, p_len);
 }
 
 static inline void stf_server_key_rotation_intermediate(void)
@@ -226,58 +194,6 @@ static inline void stf_server_key_rotation_intermediate(void)
 	}
 }
 
-static inline void stf_device_acessory_auth_verification(void)
-{
-    uint8_t *sig;
-    zf_cell s_addr = zf_pop();
-    uint8_t s_len = get_crypto_pointer(&sig, s_addr);
-
-    zf_cell pub_addr = zf_pop();
-
-    uint8_t *digest;
-    zf_cell d_addr = zf_pop();
-    uint8_t d_len = get_crypto_pointer(&digest, d_addr);
-
-    uint32_t counter = zf_pop();
-
-    uint8_t *random;
-    uint8_t r_len = get_crypto_pointer(&random, zf_pop());
-
-    uint8_t counter_buf[4] = {0};
-
-    if (s_len != ATCA_ECCP256_SIG_SIZE)
-    {
-        LOG("sig buf not 64 bytes.");
-	zf_abort(ZF_ABORT_INVALID_SIZE);
-    }
-
-    if (d_len != ATCA_SHA256_DIGEST_SIZE)
-    {
-        LOG("digest buf not 32 bytes.");
-	zf_abort(ZF_ABORT_INVALID_SIZE);
-    }
-
-    if (r_len != ATCA_KEY_SIZE)
-    {
-        LOG("rand buf not 32 bytes.");
-	zf_abort(ZF_ABORT_INVALID_SIZE);
-    }
-
-    STORE32_LE(counter_buf, counter);
-
-    sw_sha256_init(&g_sha256_ctx);
-    sw_sha256_update(&g_sha256_ctx, random, r_len);
-    sw_sha256_update(&g_sha256_ctx, counter_buf, 4);
-    sw_sha256_final(&g_sha256_ctx, digest);
-    sw_sha256_update(&g_sha256_ctx, digest, d_len);
-
-    zf_push(d_addr);
-    zf_push(pub_addr);
-    zf_push(s_addr);
-    stf_server_do_ecdsa_verify();
-}
-
-
 void stf_server_sys(zf_syscall_id id, const char *input)
 {
 	switch((int)id)
@@ -302,24 +218,8 @@ void stf_server_sys(zf_syscall_id id, const char *input)
 			stf_server_do_genkey();
 			break;
 
-		case STF_SERVER_SYSCALL_SHA256_INIT:
-			stf_server_sha256_init();
-			break;
-
-		case STF_SERVER_SYSCALL_SHA256_UPDATE:
-			stf_server_sha256_update();
-			break;
-
-		case STF_SERVER_SYSCALL_SHA256_FINALIZE:
-			stf_server_sha256_finalize();
-			break;
-
 		case STF_SERVER_SYSCALL_ROT2:
 			stf_server_key_rotation_intermediate();
-			break;
-
-		case STF_SERVER_SYSCALL_AA3:
-			stf_device_acessory_auth_verification();
 			break;
 
     	    	default:

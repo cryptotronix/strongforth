@@ -1,9 +1,8 @@
-#include <crypto/hashes/sha2_routines.h>
-
 #include "strongforth.h"
 #include "common.h"
 #include "device.h"
 #include "impl/common.h"
+#include <crypto/hashes/sha2_routines.h>
 
 #define STF_DEVICE_SYSCALL_GETRAND ZF_SYSCALL_USER + 21
 #define STF_DEVICE_SYSCALL_SIGN ZF_SYSCALL_USER + 22
@@ -18,9 +17,8 @@
 #define STF_DEVICE_SYSCALL_ROT1 ZF_SYSCALL_USER + 31
 #define STF_DEVICE_SYSCALL_ROT3 ZF_SYSCALL_USER + 32
 #define STF_DEVICE_SYSCALL_READPUB ZF_SYSCALL_USER + 33
-#define STF_DEVICE_SYSCALL_AA2 ZF_SYSCALL_USER + 34
+#define STF_DEVICE_SYSCALL_CDA4 ZF_SYSCALL_USER + 34
 
-sw_sha256_ctx g_sha256_ctx;
 
 static inline void stf_device_get_random(void)
 {
@@ -35,28 +33,50 @@ static inline void stf_device_get_random(void)
 
 static inline void stf_device_get_counter(void)
 {
-    uint32_t counter_val;
-    ATCA_STATUS status = atcab_counter_read(1, &counter_val);
+#define COUNT_SIZE 4
+    uint8_t *count;
+    zf_cell c_len = get_crypto_pointer(&count, zf_pop());
+
+    if (c_len != COUNT_SIZE)
+    {
+        LOG("counter buf not %i bytes.", COUNT_SIZE);
+	zf_abort(ZF_ABORT_INVALID_SIZE);
+    }
+
+    uint32_t counter;
+
+    ATCA_STATUS status = atcab_counter_read(1, &counter);
     if (status != ATCA_SUCCESS)
     {
         LOG("atcab_counter_read() failed: %02x\r\n", status);
 	zf_abort(ZF_ABORT_INTERNAL_ERROR);
     }
 
-    zf_push(counter_val);
+    STORE32_LE(count, counter);
 }
 
 static inline void stf_device_get_counter_inc(void)
 {
-    uint32_t counter_val;
-    ATCA_STATUS status = atcab_counter_increment(1, &counter_val);
+#define COUNT_SIZE 4
+    uint8_t *count;
+    zf_cell c_len = get_crypto_pointer(&count, zf_pop());
+
+    if (c_len != COUNT_SIZE)
+    {
+        LOG("counter buf not %i bytes.", COUNT_SIZE);
+	zf_abort(ZF_ABORT_INVALID_SIZE);
+    }
+
+    uint32_t counter;
+
+    ATCA_STATUS status = atcab_counter_increment(1, &counter);
     if (status != ATCA_SUCCESS)
     {
         LOG("atcab_counter_increment() failed: %02x\r\n", status);
 	zf_abort(ZF_ABORT_INTERNAL_ERROR);
     }
 
-    zf_push(counter_val);
+    STORE32_LE(count, counter);
 }
 
 static inline void stf_device_do_ecdsa_sign(void)
@@ -384,54 +404,83 @@ static inline void stf_device_read_pubkey_slot(void)
     }
 }
 
-static inline void stf_device_acessory_auth_sign(void)
+static inline void stf_device_cloud_device_auth(void)
 {
-#define AA_SIGN_SLOT 0
-
-    zf_cell sig_addr = zf_pop();
+    uint8_t *sig;
+    zf_cell sigaddr = zf_pop();
+    zf_cell siglen = get_crypto_pointer(&sig, sigaddr);
 
     uint8_t *digest;
-    zf_cell d_addr = zf_pop();
-    uint8_t d_len = get_crypto_pointer(&digest, d_addr);
+    zf_cell digaddr = zf_pop();
+    zf_cell diglen = get_crypto_pointer(&digest, digaddr);
 
-    uint8_t *random;
-    uint8_t r_len = get_crypto_pointer(&random, zf_pop());
+    uint8_t *command;
+    uint8_t comlen = get_crypto_pointer(&command, zf_pop());
 
-    uint8_t counter_buf[4] = {0};
+    uint8_t *counter;
+    zf_cell cntaddr = zf_pop();
+    uint8_t c_len = get_crypto_pointer(&counter, cntaddr);
 
-    uint32_t counter;
+    uint32_t cnt;
+    uint8_t internal_count[4] = {0};
 
-    if (d_len != ATCA_SHA256_DIGEST_SIZE)
+    if (siglen != ATCA_ECCP256_SIG_SIZE)
+    {
+        LOG("sig buf not 64 bytes.");
+	zf_abort(ZF_ABORT_INVALID_SIZE);
+    }
+    if (diglen != ATCA_SHA256_DIGEST_SIZE)
     {
         LOG("digest buf not 32 bytes.");
 	zf_abort(ZF_ABORT_INVALID_SIZE);
     }
-
-    if (r_len != ATCA_KEY_SIZE)
+    if (c_len != COUNT_SIZE)
     {
-        LOG("rand buf not 32 bytes.");
+        LOG("counter buf not %i bytes.", COUNT_SIZE);
 	zf_abort(ZF_ABORT_INVALID_SIZE);
     }
+    if (comlen != 0)
+    {
+	    //TODO change the comparison and add a catch!
+    }
 
-    ATCA_STATUS status = atcab_counter_read(1, &counter);
+    ATCA_STATUS status = atcab_counter_read(1, &cnt);
     if (status != ATCA_SUCCESS)
     {
         LOG("atcab_counter_read() failed: %02x\r\n", status);
 	zf_abort(ZF_ABORT_INTERNAL_ERROR);
     }
 
-    STORE32_LE(counter_buf, counter);
+    STORE32_LE(internal_count, cnt);
 
+    if ((uint32_t) *internal_count != (uint32_t) *counter)
+    {
+        LOG("err: counter mismatch");
+	zf_abort(ZF_ABORT_INTERNAL_ERROR);
+    }
+
+    sw_sha256_ctx g_sha256_ctx;
     sw_sha256_init(&g_sha256_ctx);
-    sw_sha256_update(&g_sha256_ctx, random, r_len);
-    sw_sha256_update(&g_sha256_ctx, counter_buf, 4);
+    sw_sha256_update(&g_sha256_ctx, digest, diglen);
+    sw_sha256_update(&g_sha256_ctx, counter, c_len);
     sw_sha256_final(&g_sha256_ctx, digest);
-    sw_sha256_update(&g_sha256_ctx, digest, d_len);
+    sw_sha256_update(&g_sha256_ctx, digest, diglen);
 
-    zf_push(d_addr);
-    zf_push(AA_SIGN_SLOT);
-    zf_push(sig_addr);
+    zf_push(digaddr);
+    zf_push(14);
+    zf_push(sigaddr);
+
     stf_device_do_ecdsa_sign();
+
+    zf_cell success = zf_pop();
+
+    if(success)
+	    stf_eval( (char*) command);
+    else
+    {
+        LOG("err: sig invalid");
+	zf_abort(ZF_ABORT_INTERNAL_ERROR);
+    }
 }
 
 void stf_device_sys(zf_syscall_id id, const char *input)
@@ -490,8 +539,8 @@ void stf_device_sys(zf_syscall_id id, const char *input)
 			stf_device_read_pubkey_slot();
 			break;
 
-		case STF_DEVICE_SYSCALL_AA2:
-			stf_device_acessory_auth_sign();
+		case STF_DEVICE_SYSCALL_CDA4:
+			stf_device_cloud_device_auth();
 			break;
 
     	    	default:
