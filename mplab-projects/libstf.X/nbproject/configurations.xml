@@ -1,0 +1,428 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="65">
+  <logicalFolder name="root" displayName="root" projectFiles="true">
+    <logicalFolder name="HeaderFiles"
+                   displayName="Header Files"
+                   projectFiles="true">
+      <logicalFolder name="atmega8" displayName="atmega8" projectFiles="true">
+        <itemPath>../../lib/atmega8/strongforth_conf.h</itemPath>
+        <itemPath>../../lib/atmega8/device.h</itemPath>
+      </logicalFolder>
+      <logicalFolder name="core" displayName="core" projectFiles="true">
+        <logicalFolder name="impl" displayName="impl" projectFiles="true">
+          <logicalFolder name="gimli-core" displayName="gimli-core" projectFiles="true">
+            <itemPath>../../lib/core/impl/gimli-core/sse2.h</itemPath>
+            <itemPath>../../lib/core/impl/gimli-core/portable.h</itemPath>
+          </logicalFolder>
+          <logicalFolder name="random" displayName="random" projectFiles="true">
+            <itemPath>../../lib/core/impl/random/avr.h</itemPath>
+            <itemPath>../../lib/core/impl/random/riot.h</itemPath>
+            <itemPath>../../lib/core/impl/random/nrf52832.h</itemPath>
+            <itemPath>../../lib/core/impl/random/windows.h</itemPath>
+            <itemPath>../../lib/core/impl/random/unix.h</itemPath>
+            <itemPath>../../lib/core/impl/random/mbed.h</itemPath>
+            <itemPath>../../lib/core/impl/random/particle.h</itemPath>
+            <itemPath>../../lib/core/impl/random/esp32.h</itemPath>
+            <itemPath>../../lib/core/impl/random/wasi.h</itemPath>
+          </logicalFolder>
+          <itemPath>../../lib/core/impl/sign.h</itemPath>
+          <itemPath>../../lib/core/impl/kx.h</itemPath>
+          <itemPath>../../lib/core/impl/secretbox.h</itemPath>
+          <itemPath>../../lib/core/impl/hydrogen_p.h</itemPath>
+          <itemPath>../../lib/core/impl/pwhash.h</itemPath>
+          <itemPath>../../lib/core/impl/x25519.h</itemPath>
+          <itemPath>../../lib/core/impl/kdf.h</itemPath>
+          <itemPath>../../lib/core/impl/common.h</itemPath>
+          <itemPath>../../lib/core/impl/random.h</itemPath>
+          <itemPath>../../lib/core/impl/core.h</itemPath>
+          <itemPath>../../lib/core/impl/hash.h</itemPath>
+          <itemPath>../../lib/core/impl/gimli-core.h</itemPath>
+        </logicalFolder>
+        <itemPath>../../lib/core/strongforth.h</itemPath>
+        <itemPath>../../lib/core/common.h</itemPath>
+        <itemPath>../../lib/core/hydrogen.h</itemPath>
+        <itemPath>../../lib/core/zforth.h</itemPath>
+        <itemPath>../../lib/core/base32.h</itemPath>
+      </logicalFolder>
+      <logicalFolder name="lib" displayName="lib" projectFiles="true">
+        <logicalFolder name="atcacert" displayName="atcacert" projectFiles="true">
+          <itemPath>cryptoauthlib-3.2.5/lib/atcacert/atcacert.h</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/atcacert/atcacert_def.h</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/atcacert/atcacert_host_sw.h</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/atcacert/atcacert_der.h</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/atcacert/atcacert_pem.h</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/atcacert/atcacert_date.h</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/atcacert/atcacert_host_hw.h</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/atcacert/atcacert_client.h</itemPath>
+        </logicalFolder>
+        <logicalFolder name="calib" displayName="calib" projectFiles="true">
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_execution.h</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_aes_gcm.h</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_basic.h</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_command.h</itemPath>
+        </logicalFolder>
+        <logicalFolder name="crypto" displayName="crypto" projectFiles="true">
+          <logicalFolder name="hashes" displayName="hashes" projectFiles="true">
+            <itemPath>cryptoauthlib-3.2.5/lib/crypto/hashes/sha1_routines.h</itemPath>
+            <itemPath>cryptoauthlib-3.2.5/lib/crypto/hashes/sha2_routines.h</itemPath>
+          </logicalFolder>
+          <itemPath>cryptoauthlib-3.2.5/lib/crypto/atca_crypto_sw.h</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/crypto/atca_crypto_sw_rand.h</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/crypto/atca_crypto_sw_sha1.h</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/crypto/atca_crypto_sw_sha2.h</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/crypto/atca_crypto_sw_ecdsa.h</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/crypto/atca_crypto_hw_aes.h</itemPath>
+        </logicalFolder>
+        <logicalFolder name="hal" displayName="hal" projectFiles="true">
+          <itemPath>cryptoauthlib-3.2.5/lib/hal/atca_hal.h</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/hal/atca_start_iface.h</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/hal/atca_start_config.h</itemPath>
+        </logicalFolder>
+        <itemPath>cryptoauthlib-3.2.5/lib/atca_command.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/lib/atca_basic.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/lib/atca_cfgs.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/lib/atca_iface.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/lib/atca_devtypes.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/lib/atca_version.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/lib/atca_bool.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/lib/atca_debug.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/lib/atca_device.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/lib/atca_status.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/lib/atca_helpers.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/lib/cryptoauthlib.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/lib/atca_compiler.h</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/lib/atca_config.h</itemPath>
+      </logicalFolder>
+    </logicalFolder>
+    <logicalFolder name="LinkerScript"
+                   displayName="Linker Files"
+                   projectFiles="true">
+    </logicalFolder>
+    <logicalFolder name="SourceFiles"
+                   displayName="Source Files"
+                   projectFiles="true">
+      <logicalFolder name="atmega8" displayName="atmega8" projectFiles="true">
+        <itemPath>../../lib/atmega8/device.c</itemPath>
+      </logicalFolder>
+      <logicalFolder name="core" displayName="core" projectFiles="true">
+        <logicalFolder name="impl" displayName="impl" projectFiles="true">
+          <logicalFolder name="gimli-core" displayName="gimli-core" projectFiles="true">
+          </logicalFolder>
+          <logicalFolder name="random" displayName="random" projectFiles="true">
+          </logicalFolder>
+        </logicalFolder>
+        <itemPath>../../lib/core/strongforth.c</itemPath>
+        <itemPath>../../lib/core/zforth.c</itemPath>
+        <itemPath>../../lib/core/common.c</itemPath>
+        <itemPath>../../lib/core/base32.c</itemPath>
+        <itemPath>../../lib/core/hydrogen.c</itemPath>
+      </logicalFolder>
+      <logicalFolder name="lib" displayName="lib" projectFiles="true">
+        <logicalFolder name="atcacert" displayName="atcacert" projectFiles="true">
+          <itemPath>cryptoauthlib-3.2.5/lib/atcacert/atcacert_client.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/atcacert/atcacert_der.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/atcacert/atcacert_pem.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/atcacert/atcacert_host_hw.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/atcacert/atcacert_def.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/atcacert/atcacert_host_sw.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/atcacert/atcacert_date.c</itemPath>
+        </logicalFolder>
+        <logicalFolder name="calib" displayName="calib" projectFiles="true">
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_checkmac.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_verify.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_ecdh.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_counter.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_read.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_sign.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_selftest.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_hmac.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_aes.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_genkey.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_nonce.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_execution.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_sha.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_basic.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_random.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_derivekey.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_write.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_command.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_updateextra.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_aes_gcm.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_info.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_gendig.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_lock.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_mac.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_kdf.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_secureboot.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/calib/calib_privwrite.c</itemPath>
+        </logicalFolder>
+        <logicalFolder name="crypto" displayName="crypto" projectFiles="true">
+          <logicalFolder name="hashes" displayName="hashes" projectFiles="true">
+            <itemPath>cryptoauthlib-3.2.5/lib/crypto/hashes/sha2_routines.c</itemPath>
+            <itemPath>cryptoauthlib-3.2.5/lib/crypto/hashes/sha1_routines.c</itemPath>
+          </logicalFolder>
+          <itemPath>cryptoauthlib-3.2.5/lib/crypto/atca_crypto_hw_aes_cbcmac.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/crypto/atca_crypto_hw_aes_cbc.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/crypto/atca_crypto_hw_aes_ccm.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/crypto/atca_crypto_sw_sha1.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/crypto/atca_crypto_hw_aes_cmac.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/crypto/atca_crypto_sw_ecdsa.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/crypto/atca_crypto_sw_sha2.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/crypto/atca_crypto_sw_rand.c</itemPath>
+          <itemPath>cryptoauthlib-3.2.5/lib/crypto/atca_crypto_hw_aes_ctr.c</itemPath>
+        </logicalFolder>
+        <logicalFolder name="hal" displayName="hal" projectFiles="true">
+          <itemPath>cryptoauthlib-3.2.5/lib/hal/atca_hal.c</itemPath>
+        </logicalFolder>
+        <itemPath>cryptoauthlib-3.2.5/lib/atca_command.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/lib/atca_utils_sizes.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/lib/atca_iface.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/lib/atca_helpers.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/lib/atca_basic.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/lib/atca_cfgs.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/lib/atca_device.c</itemPath>
+        <itemPath>cryptoauthlib-3.2.5/lib/atca_debug.c</itemPath>
+      </logicalFolder>
+    </logicalFolder>
+    <logicalFolder name="ExternalFiles"
+                   displayName="Important Files"
+                   projectFiles="false">
+      <itemPath>Makefile</itemPath>
+    </logicalFolder>
+  </logicalFolder>
+  <sourceRootList>
+    <Elem>../../lib/core</Elem>
+    <Elem>../../lib/atmega8</Elem>
+    <Elem>cryptoauthlib-3.2.5/lib</Elem>
+  </sourceRootList>
+  <projectmakefile>Makefile</projectmakefile>
+  <confs>
+    <conf name="atmega4809" type="3">
+      <toolsSet>
+        <developmentServer>localhost</developmentServer>
+        <targetDevice>ATmega4809</targetDevice>
+        <targetHeader></targetHeader>
+        <targetPluginBoard></targetPluginBoard>
+        <platformTool>nEdbgTool</platformTool>
+        <languageToolchain>AVR</languageToolchain>
+        <languageToolchainVersion>5.4.0</languageToolchainVersion>
+        <platform>2</platform>
+      </toolsSet>
+      <packs>
+        <pack name="ATmega_DFP" vendor="Microchip" version="2.3.126"/>
+      </packs>
+      <ScriptingSettings>
+      </ScriptingSettings>
+      <compileType>
+        <linkerTool>
+          <linkerLibItems>
+          </linkerLibItems>
+        </linkerTool>
+        <archiverTool>
+        </archiverTool>
+        <loading>
+          <useAlternateLoadableFile>false</useAlternateLoadableFile>
+          <parseOnProdLoad>false</parseOnProdLoad>
+          <alternateLoadableFile></alternateLoadableFile>
+        </loading>
+        <subordinates>
+        </subordinates>
+      </compileType>
+      <makeCustomizationType>
+        <makeCustomizationPreStepEnabled>false</makeCustomizationPreStepEnabled>
+        <makeUseCleanTarget>false</makeUseCleanTarget>
+        <makeCustomizationPreStep></makeCustomizationPreStep>
+        <makeCustomizationPostStepEnabled>false</makeCustomizationPostStepEnabled>
+        <makeCustomizationPostStep></makeCustomizationPostStep>
+        <makeCustomizationPutChecksumInUserID>false</makeCustomizationPutChecksumInUserID>
+        <makeCustomizationEnableLongLines>false</makeCustomizationEnableLongLines>
+        <makeCustomizationNormalizeHexFile>false</makeCustomizationNormalizeHexFile>
+      </makeCustomizationType>
+      <AVR-AR>
+        <property key="archiver-flags" value="-r"/>
+      </AVR-AR>
+      <AVR-AS>
+        <property key="announce-version" value="false"/>
+        <property key="include-paths" value=""/>
+        <property key="suppress-warnings" value="false"/>
+      </AVR-AS>
+      <AVR-AS-PRE>
+        <property key="announce-version" value="false"/>
+        <property key="include-paths" value=""/>
+        <property key="preprocessor-macros" value=""/>
+        <property key="preprocessor-macros-undefined" value=""/>
+        <property key="suppress-warnings" value="false"/>
+      </AVR-AS-PRE>
+      <AVR-CPP>
+        <property key="additional-warnings" value="true"/>
+        <property key="call-prologues" value="false"/>
+        <property key="default-bitfield-type" value="true"/>
+        <property key="default-char-type" value="true"/>
+        <property key="extra-include-directories" value=""/>
+        <property key="garbage-collect-data" value="true"/>
+        <property key="garbage-collect-functions" value="true"/>
+        <property key="inhibit-all" value="false"/>
+        <property key="make-warnings-into-errors" value="false"/>
+        <property key="no-interrupts" value="false"/>
+        <property key="no-system-directories" value="false"/>
+        <property key="optimization-level" value="-O1"/>
+        <property key="pack-struct" value="true"/>
+        <property key="preprocess-only" value="false"/>
+        <property key="preprocessor-macros" value=""/>
+        <property key="preprocessor-macros-undefined" value=""/>
+        <property key="save-temps" value="false"/>
+        <property key="short-calls" value="false"/>
+        <property key="short-enums" value="true"/>
+        <property key="strict-ansi" value="false"/>
+        <property key="strict-ansi-errors" value="false"/>
+        <property key="support-ansi" value="false"/>
+        <property key="syntax-only" value="false"/>
+        <property key="undefined-identifier" value="false"/>
+        <property key="verbose" value="false"/>
+      </AVR-CPP>
+      <AVR-GCC>
+        <property key="additional-warnings" value="true"/>
+        <property key="call-prologues" value="false"/>
+        <property key="default-bitfield-type" value="true"/>
+        <property key="default-char-type" value="true"/>
+        <property key="extra-include-directories"
+                  value="../../lib/atmega8;../../lib/core;cryptoauthlib-3.2.5/lib"/>
+        <property key="extra-warnings" value="false"/>
+        <property key="garbage-collect-data" value="true"/>
+        <property key="garbage-collect-functions" value="true"/>
+        <property key="inhibit-all" value="false"/>
+        <property key="make-warnings-into-errors" value="false"/>
+        <property key="no-interrupts" value="false"/>
+        <property key="no-system-directories" value="false"/>
+        <property key="optimization-level" value="-O1"/>
+        <property key="pack-struct" value="true"/>
+        <property key="preprocessor-macros" value=""/>
+        <property key="preprocessor-macros-undefined" value=""/>
+        <property key="save-temps" value="false"/>
+        <property key="short-calls" value="false"/>
+        <property key="short-enums" value="true"/>
+        <property key="strict-ansi" value="false"/>
+        <property key="strict-ansi-errors" value="false"/>
+        <property key="support-ansi" value="false"/>
+        <property key="syntax-only" value="false"/>
+        <property key="undefined-identifier" value="false"/>
+        <property key="verbose" value="false"/>
+      </AVR-GCC>
+      <AVR-Global>
+        <property key="common-include-directories" value=""/>
+        <property key="eep" value="false"/>
+        <property key="external-ram-check" value="false"/>
+        <property key="hex" value="true"/>
+        <property key="lss" value="false"/>
+        <property key="omit-pack-options" value="false"/>
+        <property key="relax-branches" value="false"/>
+        <property key="srec" value="false"/>
+        <property key="user-pack-device-support" value=""/>
+        <property key="user-pack-include" value=""/>
+        <property key="usersig" value="false"/>
+      </AVR-Global>
+      <AVR-LD>
+        <property key="eeprom-segment" value=""/>
+        <property key="exclude-standard-libraries" value="false"/>
+        <property key="extra-lib-directories" value=""/>
+        <property key="flash-segment" value=""/>
+        <property key="generate-map-file" value="true"/>
+        <property key="initial-stack-address" value=""/>
+        <property key="input-libraries" value="libm"/>
+        <property key="no-default-libs" value="false"/>
+        <property key="no-shared-libraries" value="false"/>
+        <property key="no-startup-files" value="false"/>
+        <property key="omit-symbol-information" value="false"/>
+        <property key="other-options" value=""/>
+        <property key="remove-unused-sections" value="true"/>
+        <property key="rodata-writable" value="false"/>
+        <property key="sram-segment" value=""/>
+        <property key="v-printf" value="false"/>
+      </AVR-LD>
+      <nEdbgTool>
+        <property key="AutoSelectMemRanges" value="auto"/>
+        <property key="communication.activationmode" value="nohv"/>
+        <property key="communication.interface" value="updi"/>
+        <property key="communication.speed" value="0.500"/>
+        <property key="debugoptions.useswbreakpoints" value="false"/>
+        <property key="firmware.path"
+                  value="Press to browse for a specific firmware version"/>
+        <property key="firmware.toolpack"
+                  value="Press to select which tool pack to use"/>
+        <property key="firmware.update.action" value="firmware.update.use.latest"/>
+        <property key="freeze.timers" value="false"/>
+        <property key="memories.aux" value="false"/>
+        <property key="memories.bootflash" value="true"/>
+        <property key="memories.configurationmemory" value="true"/>
+        <property key="memories.configurationmemory2" value="true"/>
+        <property key="memories.dataflash" value="true"/>
+        <property key="memories.eeprom" value="true"/>
+        <property key="memories.exclude.configurationmemory" value="true"/>
+        <property key="memories.flashdata" value="true"/>
+        <property key="memories.id" value="true"/>
+        <property key="memories.instruction.ram.ranges"
+                  value="${memories.instruction.ram.ranges}"/>
+        <property key="memories.programmemory" value="true"/>
+        <property key="memories.programmemory.ranges" value="0-5fff"/>
+        <property key="memories.rww" value="true"/>
+        <property key="poweroptions.powerenable" value="false"/>
+        <property key="programoptions.eraseb4program" value="true"/>
+        <property key="programoptions.preservedataflash" value="false"/>
+        <property key="programoptions.preservedataflash.ranges"
+                  value="${memories.dataflash.default}"/>
+        <property key="programoptions.preserveeeprom" value="false"/>
+        <property key="programoptions.preserveeeprom.ranges" value="1400-14ff"/>
+        <property key="programoptions.preserveprogram.ranges" value=""/>
+        <property key="programoptions.preserveprogramrange" value="false"/>
+        <property key="programoptions.preserveuserid" value="false"/>
+        <property key="programoptions.programuserotp" value="false"/>
+        <property key="toolpack.updateoptions"
+                  value="toolpack.updateoptions.uselatestoolpack"/>
+        <property key="toolpack.updateoptions.packversion"
+                  value="Press to select which tool pack to use"/>
+        <property key="voltagevalue" value=""/>
+      </nEdbgTool>
+    </conf>
+    <conf name="samd21" type="3">
+      <toolsSet>
+        <developmentServer>localhost</developmentServer>
+        <targetDevice></targetDevice>
+        <targetHeader></targetHeader>
+        <targetPluginBoard></targetPluginBoard>
+        <platformTool></platformTool>
+        <languageToolchain></languageToolchain>
+        <languageToolchainVersion></languageToolchainVersion>
+        <platform>2</platform>
+      </toolsSet>
+      <packs>
+      </packs>
+      <ScriptingSettings>
+      </ScriptingSettings>
+      <compileType>
+        <linkerTool>
+          <linkerLibItems>
+          </linkerLibItems>
+        </linkerTool>
+        <archiverTool>
+        </archiverTool>
+        <loading>
+          <useAlternateLoadableFile>false</useAlternateLoadableFile>
+          <parseOnProdLoad>false</parseOnProdLoad>
+          <alternateLoadableFile></alternateLoadableFile>
+        </loading>
+        <subordinates>
+        </subordinates>
+      </compileType>
+      <makeCustomizationType>
+        <makeCustomizationPreStepEnabled>false</makeCustomizationPreStepEnabled>
+        <makeUseCleanTarget>false</makeUseCleanTarget>
+        <makeCustomizationPreStep></makeCustomizationPreStep>
+        <makeCustomizationPostStepEnabled>false</makeCustomizationPostStepEnabled>
+        <makeCustomizationPostStep></makeCustomizationPostStep>
+        <makeCustomizationPutChecksumInUserID>false</makeCustomizationPutChecksumInUserID>
+        <makeCustomizationEnableLongLines>false</makeCustomizationEnableLongLines>
+        <makeCustomizationNormalizeHexFile>false</makeCustomizationNormalizeHexFile>
+      </makeCustomizationType>
+    </conf>
+  </confs>
+</configurationDescriptor>
