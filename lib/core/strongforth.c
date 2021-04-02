@@ -3,7 +3,7 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-#include <getopt.h>
+//#include <getopt.h>
 #include <math.h>
 #include <unistd.h>
 
@@ -339,9 +339,12 @@ ATCA_STATUS stf_init (char *dict_path, ATCAIfaceCfg *cfg)
 
 	// TODO will not be bootstrapping and including in future, will use binary
 	zf_bootstrap();
+    
+#if defined(__unix__)
 	if (dict_path != NULL)
 		stf_include(dict_path);
-
+#endif
+    
 	ATCA_STATUS stat = ~ATCA_SUCCESS;
 	if (cfg != NULL)
 		stat = atcab_init(cfg);

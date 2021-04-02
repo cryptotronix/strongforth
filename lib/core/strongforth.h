@@ -1,7 +1,11 @@
 #ifndef strongforth_h
 #define strongforth_h
 
+#if defined(__unix__)
 #include <cryptoauthlib/cryptoauthlib.h>
+#else
+#include "cryptoauthlib.h"
+#endif
 #include "strongforth_conf.h"
 
 typedef struct stf_eval_resp {
