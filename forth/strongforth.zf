@@ -16,7 +16,7 @@
 ( when b32in is called, next number pushed is interpreted as base32 and puts addr on stack )
 : b32in   	( reg -- )				132 sys ;
 : b32tell 	( reg -- )				133 sys ;
-: shstat  	( -- status )				134 sys ;
+: setstat  	( -- status )				134 sys ;
 : symkeygen 	( key -- ) 				135 sys ;
 : hydroe 	( c mlen m msgid key -- ) 		136 sys ;
 : hydrod 	( c m msgid key -- t=mlen f=0 ) 	137 sys ;
@@ -27,6 +27,7 @@
 : sha256i  	( -- ) 					142 sys ;
 : sha256u  	( buffer -- ) 				143 sys ;
 : sha256f  	( digest -- ) 				144 sys ;
+: bufcmp  	( buf1 buf2 -- equal ) 			145 sys ;
 
 ( COMMON W/ DIFFERENT IMPLEMENTATIONS )
 
@@ -156,9 +157,11 @@ var c 64 1 + allot
 var m 28 1 + allot
 var k 32 1 + allot
 
+var epk 64 1 + allot
+var non 32 1 + allot
+
 var uplink 32 1 + allot
 var dolink 32 1 + allot
-var pub2 64 1 + allot
 
 
 ( setting size byte )
@@ -178,9 +181,22 @@ var pub2 64 1 + allot
 28 m !u8
 32 k !u8
 
+64 epk !u8
+32 non !u8
+
 32 uplink !u8
 32 dolink !u8
-64 pub2 !u8
+
+: pub< pub b32in ;
+: pri< pri b32in ;
+: ran< ran b32in ;
+: dig< dig b32in ;
+: sig< sig b32in ;
+: cnt< cnt b32in ;
+: epk< epk b32in ;
+: non< non b32in ;
+: upl< uplink b32in ;
+: dol< dolink b32in ;
 
 ( ENCRYPTION COMMANDS )
 
@@ -189,57 +205,77 @@ var domsgid
 
 : ecdhkdf uplink 0 shs hydrokdf dolink 1 shs hydrokdf 0 upmsgid ! 0 domsgid ! ;
 
+( reversed )
+: ecdhkdfr dolink 0 shs hydrokdf uplink 1 shs hydrokdf 0 domsgid ! 0 upmsgid ! ;
+
+( stateless reversed )
+: secdhkdfr ecdhkdfr
+	." upl< " uplink 32>
+	." dol< " dolink 32> ;
+
 : encrypt c swap m upmsgid @ k hydroe upmsgid dup @ 1 + swap ! ;
 : decrypt c m domsgid @ k hydrod dup 0 = unless domsgid dup @ 1 + swap ! fi ;
 
 ( DEVICE FLOW COMMANDS)
 
-: rot1 rot1i ser getser 0 . ." see 32< " see 32> ." ran 32< " ran 32> ." pub 32< " pub 32> ." ser 32< " ser 32> . . ." gen ver dig rot2"  ;
+( new slot 14 pubkey must be in pub )
 
 : aa2 ( -- ) sha256i ran sha256u cnt counter cnt sha256u dig sha256f dig 0 sig sign 0 pub getpub
-	." ran 32< " ran 32>
-	." sig 32< " sig 32>
-	." cnt 32< " cnt 32>
-	." pub 32< " pub 32>
+	." ran< " ran 32>
+	." sig< " sig 32>
+	." cnt< " cnt 32>
+	." pub< " pub 32>
 	." aa3" ;
 
 : cda2 ( -- ) cnt cntrinc sha256i cnt sha256u dig sha256f dig 0 sig sign
-	." sig:" sig 32>
-	." count:" cnt 32>
+	." sig< " sig 32>
+	." cnt< " cnt 32>
+	." cda2"
  ;
 
-: cda4 ( -- ) cnt counter sha256i dig sha256u cnt sha256u dig sha256f dig 14 sig verify . ;
+: cda4 ( -- ) cnt counter sha256i dig sha256u cnt sha256u dig sha256f dig 14 sig verify setstat ;
 
-: se1 ( -- ) 2 pub genkey cnt counter sha256i pub sha256u cnt sha256u dig sha256f dig 0 sig sign
-	." pub 32< " pub 32>
-	." cnt 32< " cnt 32>
-	." sig 32< " sig 32>
+: se1 ( -- ) 2 pub genkey cnt cntrinc sha256i pub sha256u cnt sha256u dig sha256f dig 0 sig sign
+	." pub< " pub 32>
+	." cnt< " cnt 32>
+	." sig< " sig 32>
+	." epk< " 0 epk getpub epk 32>
 	." se2" ;
 
-: se3 ( -- ) 2 pub2 getpub cnt counter sha256i pub2 sha256u pub sha256u cnt sha256u dig sha256f dig 14 sig verify
-	if pub 2 shs ecdh ecdhkdf else 0 .  ;
+: se3 ( -- ) 2 c getpub cnt counter sha256i c sha256u pub sha256u cnt sha256u dig sha256f dig 14 sig verify
+	if pub 2 shs ecdh ecdhkdf -1 setstat else 0 setstat fi ;
 
 
 ( SERVER FLOW COMMANDS)
 
 : aa1 ( -- ) ran dup getrand
-	." ran 32< " 32> ." aa2";
+	." ran< " 32> ." aa2";
 
-: aa3 ( -- ) sha256i ran sha256u cnt sha256u dig sha256f dig pub sig verify . ;
+( expects non to be preloaded with the reference nonce )
+: aa3 ( -- ) non ran bufcmp
+	if sha256i ran sha256u cnt sha256u dig sha256f dig pub sig verify dup setstat .
+	else 0 dup setstat . fi ;
 
 : cda1 ( -- ) ." cda2";
 
-( command should be hashed out-of-band and put into dig and private key loaded into pri )
+( command should be hashed out-of-band and put into dig and slot 14 private key loaded into pri )
 : cda3 ( -- ) ." dig 32< " dig 32>
 	sha256i dig sha256u cnt sha256u dig sha256f dig pri sig sign
-	." sig 32< " sig 32>
+	." sig< " sig 32>
 	." cda4" ;
 
-( slot 14 private key must be in pri buffer )
-: se2 ( -- ) k c genkey sha256i pub sha256u pub2 sha256u cnt sha256u dig sha256f dig pri sig sign
-	." pub 32< " pub2 32>
-	." sig 32< " sig 32>
-	." se3" ;
+( slot 14 private key must be loaded in to  pri buffer )
+( using c and k b/c no extra pub buffer, saving memory )
+: se2 ( -- ) sha256i pub sha256u cnt sha256u dig sha256f dig epk sig verify
+	if k c genkey sha256i pub sha256u c sha256u cnt sha256u dig sha256f dig pri sig sign
+	pub k shs ecdh ecdhkdfr
+		." pub< " c 32>
+		." sig< " sig 32>
+		." se3"
+	else 0 . fi ;
+
+( stateless )
+: sse2 ( -- ) se2 ."  | pri< " k 32> ." pub< " c 32> ." | upl< " uplink 32> ." dol< " dolink 32> ;
 
 
 ( methods for handling the dictionary )

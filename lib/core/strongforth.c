@@ -34,7 +34,7 @@
 #define STF_SYSCALL_SAVE ZF_SYSCALL_USER + 3
 #define STF_SYSCALL_B32IN ZF_SYSCALL_USER + 4
 #define STF_SYSCALL_B32TELL ZF_SYSCALL_USER + 5
-#define STF_SYSCALL_GETSTATUS ZF_SYSCALL_USER + 6
+#define STF_SYSCALL_SETSTATUS ZF_SYSCALL_USER + 6
 #define STF_SYSCALL_SECRETBOX_KEYGEN ZF_SYSCALL_USER + 7
 #define STF_SYSCALL_SECRETBOX_ENCRYPT ZF_SYSCALL_USER + 8
 #define STF_SYSCALL_SECRETBOX_DECRYPT ZF_SYSCALL_USER + 9
@@ -42,14 +42,17 @@
 #define STF_SYSCALL_RANDOM_FILL ZF_SYSCALL_USER + 11
 #define STF_SYSCALL_KDF ZF_SYSCALL_USER + 12
 #define STF_SYSCALL_MEMCOPY ZF_SYSCALL_USER + 13
-#define STF_SERVER_SYSCALL_SHA256_INIT ZF_SYSCALL_USER + 14
-#define STF_SERVER_SYSCALL_SHA256_UPDATE ZF_SYSCALL_USER + 15
-#define STF_SERVER_SYSCALL_SHA256_FINALIZE ZF_SYSCALL_USER + 16
+#define STF_SYSCALL_SHA256_INIT ZF_SYSCALL_USER + 14
+#define STF_SYSCALL_SHA256_UPDATE ZF_SYSCALL_USER + 15
+#define STF_SYSCALL_SHA256_FINALIZE ZF_SYSCALL_USER + 16
+#define STF_SYSCALL_BUFFER_CMP ZF_SYSCALL_USER + 17
 
 /* syscall ranges */
 #define STF_SYSCALLS_COMMON ZF_SYSCALL_USER + 20
 
 sw_sha256_ctx g_sha256_ctx;
+
+static zf_cell STRONGFORTH_STATUS = 0;
 
 static zf_addr B32_INPUT = 0;
 
@@ -176,7 +179,12 @@ static inline void stf_b32tell(void)
     }
 }
 
-static inline void stf_crypto_secretbox_keygen ()
+static inline void stf_set_strongforth_status(void)
+{
+    STRONGFORTH_STATUS = zf_pop();
+}
+
+static inline void stf_crypto_secretbox_keygen(void)
 {
     uint8_t *key_buf = NULL;
     uint8_t l = get_crypto_pointer (&key_buf, zf_pop());
@@ -339,12 +347,12 @@ static inline void stf_debug_copy_buf()
     memcpy (b, a, bl);
 }
 
-static inline void stf_server_sha256_init(void)
+static inline void stf_sha256_init(void)
 {
         sw_sha256_init(&g_sha256_ctx);
 }
 
-static inline void stf_server_sha256_update(void)
+static inline void stf_sha256_update(void)
 {
         uint8_t *p;
         int p_len = get_crypto_pointer(&p, zf_pop());
@@ -352,7 +360,7 @@ static inline void stf_server_sha256_update(void)
         sw_sha256_update(&g_sha256_ctx, p, p_len);
 }
 
-static inline void stf_server_sha256_finalize(void)
+static inline void stf_sha256_finalize(void)
 {
         uint8_t *p;
         int p_len = get_crypto_pointer(&p, zf_pop());
@@ -362,6 +370,33 @@ static inline void stf_server_sha256_finalize(void)
 
 
         sw_sha256_update(&g_sha256_ctx, p, p_len);
+}
+
+static inline void stf_buffer_compare(void)
+{
+        uint8_t *buf1;
+        int b1_len = get_crypto_pointer(&buf1, zf_pop());
+
+        uint8_t *buf2;
+        int b2_len = get_crypto_pointer(&buf2, zf_pop());
+
+	if (b1_len != b2_len)
+	{
+		zf_push(0);
+		return;
+	}
+
+	while(--b1_len >= 0)
+	{
+		if(buf1[b1_len] != buf2[b1_len])
+		{
+			zf_push(0);
+			return;
+		}
+		b1_len--;
+	}
+
+	zf_push(-1);
 }
 
 /*
@@ -416,8 +451,8 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 			stf_b32tell();
 			break;
 
-		case STF_SYSCALL_GETSTATUS:
-			zf_push(get_strongforth_status());
+		case STF_SYSCALL_SETSTATUS:
+			stf_set_strongforth_status();
 			break;
 
     		case STF_SYSCALL_SECRETBOX_KEYGEN:
@@ -448,16 +483,20 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 			stf_debug_copy_buf();
 			break;
 
-		case STF_SERVER_SYSCALL_SHA256_INIT:
-			stf_server_sha256_init();
+		case STF_SYSCALL_SHA256_INIT:
+			stf_sha256_init();
 			break;
 
-		case STF_SERVER_SYSCALL_SHA256_UPDATE:
-			stf_server_sha256_update();
+		case STF_SYSCALL_SHA256_UPDATE:
+			stf_sha256_update();
 			break;
 
-		case STF_SERVER_SYSCALL_SHA256_FINALIZE:
-			stf_server_sha256_finalize();
+		case STF_SYSCALL_SHA256_FINALIZE:
+			stf_sha256_finalize();
+			break;
+
+		case STF_SYSCALL_BUFFER_CMP:
+			stf_buffer_compare();
 			break;
 
     	    	default:
@@ -586,7 +625,9 @@ stf_eval_resp_t stf_eval (const char *buf)
 #endif
 
 	resp.rc = rv;
-	resp.stf_status = get_strongforth_status();
+	resp.stf_status = (uint32_t) STRONGFORTH_STATUS;
+
+	STRONGFORTH_STATUS = 0;
 
 	return resp;
 }
