@@ -230,8 +230,8 @@ var domsgid
 : cda1 ( -- ) ." cda2";
 
 ( command should be hashed out-of-band and put into dig and private key loaded into pri )
-: cda3 ( -- ) sha256i dig sha256u cnt sha256u dig sha256f dig pri sig sign
-	." dig 32< " dig 32>
+: cda3 ( -- ) ." dig 32< " dig 32>
+	sha256i dig sha256u cnt sha256u dig sha256f dig pri sig sign
 	." sig 32< " sig 32>
 	." cda4" ;
 
