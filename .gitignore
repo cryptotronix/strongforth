@@ -7,3 +7,20 @@ src/linux/zforth
 zforth.save
 .zforth.hist
 /src/linux-sim/zforth
+
+# Untracked files in MPLABX projects
+/**/build/*
+/**/dist/*
+/**/nbproject/*
+!/**/nbproject/*.xml
+/**/[Ff]ree/production/*
+/**/[Pp]ro/production/*
+/**/.generated_files/*
+/lib/atmega8/cryptoauthlib.X/build/
+/lib/atmega8/cryptoauthlib.X/dist/
+/mplab-projects/libcryptoauth.X/build/
+/mplab-projects/libcryptoauth.X/dist/
+/mplab-projects/libstf.X/dist/
+/mplab-projects/libstf.X/build/
+/mplab-projects/stf-atmega4809.X/build/
+/mplab-projects/stf-atmega4809.X/dist/
