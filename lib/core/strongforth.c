@@ -308,7 +308,7 @@ static inline void stf_crypto_kdf()
     uint8_t l = get_crypto_pointer (&master_key, zf_pop());
     if (l != hydro_kdf_KEYBYTES)
     {
-        fprintf(stderr, "invalid kdf keybytes\n");
+        LOG("invalid kdf keybytes\n");
         return;
     }
 
@@ -319,7 +319,7 @@ static inline void stf_crypto_kdf()
     uint8_t skl = get_crypto_pointer (&sub_key, zf_pop());
     if (skl < 16 || skl > 64)
     {
-        fprintf(stderr, "invalid subkey buffer\n");
+        LOG("invalid subkey buffer\n");
         return;
     }
 

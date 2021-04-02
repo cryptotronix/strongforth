@@ -24,17 +24,17 @@
 : rfill 	( buffer -- ) 				139 sys ;
 : hydrokdf 	( subkey subkeyid masterkey -- ) 	140 sys ;
 : memcpy 	( dest src -- ) 			141 sys ;
-: sha256i  ( -- ) 					142 sys ;
-: sha256u  ( buffer -- ) 				143 sys ;
-: sha256f  ( digest -- ) 				144 sys ;
+: sha256i  	( -- ) 					142 sys ;
+: sha256u  	( buffer -- ) 				143 sys ;
+: sha256f  	( digest -- ) 				144 sys ;
 
 ( COMMON W/ DIFFERENT IMPLEMENTATIONS )
 
-: getrand ( random -- )					149 sys ;
-: sign    ( digest prislot sig -- )			150 sys ;
-: verify  ( digest pubslot sig -- pass)			151 sys ;
-: ecdh    ( pubkey prislot sharsec -- )			152 sys ;
-: genkey  ( prikey pubkey -- ) 				153 sys ;
+: getrand ( random -- )							149 sys ;
+: sign    ( digest prislot sig -- ) ( digest prikey sig -- )		150 sys ;
+: verify  ( digest pubslot sig -- pass)	( digest pubkey sig -- pass)	151 sys ;
+: ecdh    ( pubkey prislot sharsec -- )	( pubkey prikey sharsec -- )	152 sys ;
+: genkey  ( prislot pubkey -- ) ( prikey pubkey -- ) 			153 sys ;
 
 ( DEVICE )
 
@@ -46,7 +46,6 @@
 : rot1i    ( seed randout pubkey -- keyconf slotconf)	159 sys ;
 : rot3i    ( valid verdata gendata sig -- ver)		160 sys ;
 : readpub ( slot pubkey -- )				161 sys ;
-: cda	  ( counter command cmd_dig sig -- )		162 sys ;
 
 : 32< b32in ;
 : 32> b32tell ;
@@ -157,6 +156,10 @@ var c 64 1 + allot
 var m 28 1 + allot
 var k 32 1 + allot
 
+var uplink 32 1 + allot
+var dolink 32 1 + allot
+var pub2 64 1 + allot
+
 
 ( setting size byte )
 64 pub !u8
@@ -175,7 +178,22 @@ var k 32 1 + allot
 28 m !u8
 32 k !u8
 
+32 uplink !u8
+32 dolink !u8
+64 pub2 !u8
+
+( ENCRYPTION COMMANDS )
+
+var upmsgid
+var domsgid
+
+: ecdhkdf uplink 0 shs hydrokdf dolink 1 shs hydrokdf 0 upmsgid ! 0 domsgid ! ;
+
+: encrypt c swap m upmsgid @ k hydroe upmsgid dup @ 1 + swap ! ;
+: decrypt c m domsgid @ k hydrod dup 0 = unless domsgid dup @ 1 + swap ! fi ;
+
 ( DEVICE FLOW COMMANDS)
+
 : rot1 rot1i ser getser 0 . ." see 32< " see 32> ." ran 32< " ran 32> ." pub 32< " pub 32> ." ser 32< " ser 32> . . ." gen ver dig rot2"  ;
 
 : aa2 ( -- ) sha256i ran sha256u cnt counter cnt sha256u dig sha256f dig 0 sig sign 0 pub getpub
@@ -190,7 +208,17 @@ var k 32 1 + allot
 	." count:" cnt 32>
  ;
 
-: cda4 cda ;
+: cda4 ( -- ) cnt counter sha256i dig sha256u cnt sha256u dig sha256f dig 14 sig verify . ;
+
+: se1 ( -- ) 2 pub genkey cnt counter sha256i pub sha256u cnt sha256u dig sha256f dig 0 sig sign
+	." pub 32< " pub 32>
+	." cnt 32< " cnt 32>
+	." sig 32< " sig 32>
+	." se2" ;
+
+: se3 ( -- ) 2 pub2 getpub cnt counter sha256i pub2 sha256u pub sha256u cnt sha256u dig sha256f dig 14 sig verify
+	if pub 2 shs ecdh ecdhkdf else 0 .  ;
+
 
 ( SERVER FLOW COMMANDS)
 
@@ -201,16 +229,17 @@ var k 32 1 + allot
 
 : cda1 ( -- ) ." cda2";
 
-: cda3 ( -- ) ." cda4";
+( command should be hashed out-of-band and put into dig and private key loaded into pri )
+: cda3 ( -- ) sha256i dig sha256u cnt sha256u dig sha256f dig pri sig sign
+	." dig 32< " dig 32>
+	." sig 32< " sig 32>
+	." cda4" ;
 
-( A test command, that assumes the command is stored in ran )
-: cda3.5  sha256i ran sha256u dig sha256f
-	." cnt 32<" cnt 32>
-	." ran 32<" ran 32>
-	." dig 32<" dig 32>
-	sha256i dig sha256u cnt sha256u dig sha256f dig pri sig sign
-	." sig 32<" sig 32>
-	." cnt ran dig sig cda4" ;
+( slot 14 private key must be in pri buffer )
+: se2 ( -- ) k c genkey sha256i pub sha256u pub2 sha256u cnt sha256u dig sha256f dig pri sig sign
+	." pub 32< " pub2 32>
+	." sig 32< " sig 32>
+	." se3" ;
 
 
 ( methods for handling the dictionary )
