@@ -324,8 +324,8 @@ static inline void stf_device_prep_key_rotate(void)
 	zf_abort(ZF_ABORT_INTERNAL_ERROR);
     }
 
-    zf_push(slot_config);
     zf_push(key_config);
+    zf_push(slot_config);
 }
 
 static inline void stf_device_key_rotate(void)

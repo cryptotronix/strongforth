@@ -107,9 +107,6 @@ static inline void stf_server_key_rotation_intermediate(void)
         uint8_t *gen_key_other_data;
         int gendata_len = get_crypto_pointer(&gen_key_other_data, zf_pop());
 
-	uint16_t key_bit = zf_pop();
-	uint16_t slot_bit = zf_pop();
-
         uint8_t *serial;
         int serial_len = get_crypto_pointer(&serial, zf_pop());
 
@@ -121,6 +118,9 @@ static inline void stf_server_key_rotation_intermediate(void)
 
         uint8_t *seed;
         int seed_len = get_crypto_pointer(&seed, zf_pop());
+
+	uint16_t slot_bit = zf_pop();
+	uint16_t key_bit = zf_pop();
 
 	zf_cell validate = zf_pop();
 

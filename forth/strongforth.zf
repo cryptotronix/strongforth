@@ -44,8 +44,8 @@
 : getpub  ( slot pubkey -- )				156 sys ;
 : setpub  ( slot pubkey -- )				157 sys ;
 : getser  ( serial -- )					158 sys ;
-: rot1i    ( seed randout pubkey -- keyconf slotconf)	159 sys ;
-: rot3i    ( valid verdata gendata sig -- ver)		160 sys ;
+: rot1i   ( seed randout pubkey -- keyconf slotconf )	159 sys ;
+: rot3i   ( valid verdata gendata sig -- ver)		160 sys ;
 : readpub ( slot pubkey -- )				161 sys ;
 
 : 32< b32in ;
@@ -53,7 +53,7 @@
 
 ( SERVER )
 
-: rot2i ( valid seed randout pubkey serial slotconf keyconf gendata verdata digest -- )	179 sys ;
+: rot2i ( valid slotconf keyconf seed randout pubkey serial gendata verdata digest -- )	179 sys ;
 : aa3 ( random counter digest pubkey sig -- verified )					180 sys ;
 
 
@@ -195,6 +195,9 @@ var dolink 32 1 + allot
 : cnt< cnt b32in ;
 : epk< epk b32in ;
 : non< non b32in ;
+: see< see b32in ;
+: gen< gen b32in ;
+: ver< ver b32in ;
 : upl< uplink b32in ;
 : dol< dolink b32in ;
 
@@ -216,10 +219,12 @@ var domsgid
 : encrypt c swap m upmsgid @ k hydroe upmsgid dup @ 1 + swap ! ;
 : decrypt c m domsgid @ k hydrod dup 0 = unless domsgid dup @ 1 + swap ! fi ;
 
+: sencrypt encrypt ."  | " upmsgid . ." upmsgid ! " domsgid . ." domsgid !";
+: sdecrypt decrypt ."  | " upmsgid . ." upmsgid ! " domsgid . ." domsgid !";
+
 ( DEVICE FLOW COMMANDS)
 
 ( new slot 14 pubkey must be in pub )
-
 : aa2 ( -- ) sha256i ran sha256u cnt counter cnt sha256u dig sha256f dig 0 sig sign 0 pub getpub
 	." ran< " ran 32>
 	." sig< " sig 32>
@@ -230,6 +235,7 @@ var domsgid
 : cda2 ( -- ) cnt cntrinc sha256i cnt sha256u dig sha256f dig 0 sig sign
 	." sig< " sig 32>
 	." cnt< " cnt 32>
+	." pub< " 0 pub getpub pub 32>
 	." cda2"
  ;
 
@@ -245,11 +251,23 @@ var domsgid
 : se3 ( -- ) 2 c getpub cnt counter sha256i c sha256u pub sha256u cnt sha256u dig sha256f dig 14 sig verify
 	if pub 2 shs ecdh ecdhkdf -1 setstat else 0 setstat fi ;
 
+( 20 byte seed must be loaded into see, and new slot 14 pub key msut be loaded into pub )
+: rot1 see ran pub rot1i
+	." see< " see 32>
+	." ran< " ran 32>
+	." pub< " pub 32>
+	. .
+	." rot2" ;
+
+: rot3 0 ver gen sig rot3i setstat ;
 
 ( SERVER FLOW COMMANDS)
 
 : aa1 ( -- ) ran dup getrand
 	." ran< " 32> ." aa2";
+
+( stateless )
+: saa1 aa1 ."  | non< " ran 32>
 
 ( expects non to be preloaded with the reference nonce )
 : aa3 ( -- ) non ran bufcmp
@@ -260,9 +278,11 @@ var domsgid
 
 ( command should be hashed out-of-band and put into dig and slot 14 private key loaded into pri )
 : cda3 ( -- ) ." dig 32< " dig 32>
-	sha256i dig sha256u cnt sha256u dig sha256f dig pri sig sign
-	." sig< " sig 32>
-	." cda4" ;
+	sha256i cnt sha256u ran sha256f ran pub sig verify
+	if sha256i dig sha256u cnt sha256u dig sha256f dig pri sig sign
+	   ." sig< " sig 32>
+	   ." cda4"
+	else 0 . ;
 
 ( slot 14 private key must be loaded in to  pri buffer )
 ( using c and k b/c no extra pub buffer, saving memory )
@@ -276,6 +296,14 @@ var domsgid
 
 ( stateless )
 : sse2 ( -- ) se2 ."  | pri< " k 32> ." pub< " c 32> ." | upl< " uplink 32> ." dol< " dolink 32> ;
+
+( requires slot 14 private key loaded into pri )
+: rot2 ( -- ) 0 rot rot see ran pub ser gen ver dig rot2i
+	dig pri sig sign
+	." ver< " ver 32>
+	." gen< " gen 32>
+	." sig< " sig 32>
+	." rot3" ;
 
 
 ( methods for handling the dictionary )
