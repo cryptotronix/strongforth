@@ -297,7 +297,6 @@ static inline void stf_device_prep_key_rotate(void)
 	zf_abort(ZF_ABORT_INTERNAL_ERROR);
     }
 
-
     status = atcab_read_bytes_zone(ATCA_ZONE_CONFIG, -1, 48, (uint8_t*) &slot_config, 1);
     if (status != ATCA_SUCCESS)
     {
@@ -371,7 +370,7 @@ static inline void stf_device_key_rotate(void)
 	zf_abort(ZF_ABORT_INTERNAL_ERROR);
     }
 
-    if (validate == 0)
+    if (validate == -1)
     {
         status = atcab_verify_validate(14, sig, verdata, &is_verified);
         if (status != ATCA_SUCCESS)
@@ -380,7 +379,7 @@ static inline void stf_device_key_rotate(void)
 	    zf_abort(ZF_ABORT_INTERNAL_ERROR);
         }
     }
-    else if (validate == -1)
+    else if (validate == 0)
     {
         status = atcab_verify_invalidate(14, sig, verdata, &is_verified);
         if (status != ATCA_SUCCESS)

@@ -28,6 +28,7 @@
 : sha256u  	( buffer -- ) 				143 sys ;
 : sha256f  	( digest -- ) 				144 sys ;
 : bufcmp  	( buf1 buf2 -- equal ) 			145 sys ;
+: bufcpy  	( bufdest bufsrc -- ) 			146 sys ;
 
 ( COMMON W/ DIFFERENT IMPLEMENTATIONS )
 
@@ -187,19 +188,20 @@ var dolink 32 1 + allot
 32 uplink !u8
 32 dolink !u8
 
-: pub< pub b32in ;
-: pri< pri b32in ;
-: ran< ran b32in ;
-: dig< dig b32in ;
-: sig< sig b32in ;
-: cnt< cnt b32in ;
-: epk< epk b32in ;
-: non< non b32in ;
-: see< see b32in ;
-: gen< gen b32in ;
-: ver< ver b32in ;
-: upl< uplink b32in ;
-: dol< dolink b32in ;
+: pub< pub 32< ;
+: pri< pri 32< ;
+: ran< ran 32< ;
+: dig< dig 32< ;
+: sig< sig 32< ;
+: cnt< cnt 32< ;
+: epk< epk 32< ;
+: non< non 32< ;
+: see< see 32< ;
+: ser< ser 32< ;
+: gen< gen 32< ;
+: ver< ver 32< ;
+: upl< uplink 32< ;
+: dol< dolink 32< ;
 
 ( ENCRYPTION COMMANDS )
 
@@ -212,20 +214,21 @@ var domsgid
 : ecdhkdfr dolink 0 shs hydrokdf uplink 1 shs hydrokdf 0 domsgid ! 0 upmsgid ! ;
 
 ( stateless reversed )
-: secdhkdfr ecdhkdfr
+: ecdhkdfrs ecdhkdfr
 	." upl< " uplink 32>
 	." dol< " dolink 32> ;
 
 : encrypt c swap m upmsgid @ k hydroe upmsgid dup @ 1 + swap ! ;
 : decrypt c m domsgid @ k hydrod dup 0 = unless domsgid dup @ 1 + swap ! fi ;
 
-: sencrypt encrypt ."  | " upmsgid . ." upmsgid ! " domsgid . ." domsgid !";
-: sdecrypt decrypt ."  | " upmsgid . ." upmsgid ! " domsgid . ." domsgid !";
+( stateless )
+: encrypts encrypt ."  | " upmsgid . ." upmsgid ! " domsgid . ." domsgid !";
+( stateless )
+: decrypts decrypt ."  | " upmsgid . ." upmsgid ! " domsgid . ." domsgid !";
 
 ( DEVICE FLOW COMMANDS)
 
-( new slot 14 pubkey must be in pub )
-: aa2 ( -- ) sha256i ran sha256u cnt counter cnt sha256u dig sha256f dig 0 sig sign 0 pub getpub
+: aa2 ( -- ) 14 pub readpub sha256i ran sha256u cnt counter cnt sha256u dig sha256f dig 0 sig sign 0 pub getpub
 	." ran< " ran 32>
 	." sig< " sig 32>
 	." cnt< " cnt 32>
@@ -236,8 +239,7 @@ var domsgid
 	." sig< " sig 32>
 	." cnt< " cnt 32>
 	." pub< " 0 pub getpub pub 32>
-	." cda2"
- ;
+	." cda3" ;
 
 : cda4 ( -- ) cnt counter sha256i dig sha256u cnt sha256u dig sha256f dig 14 sig verify setstat ;
 
@@ -248,30 +250,34 @@ var domsgid
 	." epk< " 0 epk getpub epk 32>
 	." se2" ;
 
+( stateless, not necessary for device but ensures the server does the stateless version )
+: se1s se1 ." s" ;
+
 : se3 ( -- ) 2 c getpub cnt counter sha256i c sha256u pub sha256u cnt sha256u dig sha256f dig 14 sig verify
 	if pub 2 shs ecdh ecdhkdf -1 setstat else 0 setstat fi ;
 
-( 20 byte seed must be loaded into see, and new slot 14 pub key msut be loaded into pub )
-: rot1 see ran pub rot1i
-	." see< " see 32>
+( 20 byte seed must be loaded into see)
+: rot1 ( valid -- ) . see ran pub rot1i
 	." ran< " ran 32>
 	." pub< " pub 32>
+	." see< " see 32>
+	." ser< " ser getser ser 32>
 	. .
 	." rot2" ;
 
-: rot3 0 ver gen sig rot3i setstat ;
+: rot3 ( valid -- ) ver gen sig rot3i setstat ;
 
 ( SERVER FLOW COMMANDS)
 
-: aa1 ( -- ) ran dup getrand
-	." ran< " 32> ." aa2";
+: aa1 ( -- ) ran getrand
+	non ran bufcpy
+	." ran< " ran 32> ." aa2";
 
 ( stateless )
-: saa1 aa1 ."  | non< " ran 32>
+: aa1s aa1 ."  | non< " ran 32> ;
 
 ( expects non to be preloaded with the reference nonce )
-: aa3 ( -- ) non ran bufcmp
-	if sha256i ran sha256u cnt sha256u dig sha256f dig pub sig verify dup setstat .
+: aa3 ( -- ) -1 if sha256i ran sha256u cnt sha256u dig sha256f dig pub sig verify dup setstat .
 	else 0 dup setstat . fi ;
 
 : cda1 ( -- ) ." cda2";
@@ -295,10 +301,10 @@ var domsgid
 	else 0 . fi ;
 
 ( stateless )
-: sse2 ( -- ) se2 ."  | pri< " k 32> ." pub< " c 32> ." | upl< " uplink 32> ." dol< " dolink 32> ;
+: se2s ( -- ) se2 ."  | pri< " k 32> ." pub< " c 32> ." | upl< " uplink 32> ." dol< " dolink 32> ;
 
-( requires slot 14 private key loaded into pri )
-: rot2 ( -- ) 0 rot rot see ran pub ser gen ver dig rot2i
+( requires slot 13 private key loaded into pri )
+: rot2 ( valid slotconf keyconf -- ) rot dup . rot rot see ran pub ser gen ver dig rot2i
 	dig pri sig sign
 	." ver< " ver 32>
 	." gen< " gen 32>

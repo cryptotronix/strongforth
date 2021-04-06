@@ -21,9 +21,6 @@ stf_stf_init(__attribute__ ((unused)) PyObject *self,
         	return NULL;
    	}
 
-	if (atca_cfg == NULL)
-		printf("BOOOOO");
-	fflush(stdout);
 	ATCA_STATUS stat = stf_init(fname, atca_cfg);
 
 	/* making sure we do not overflow */

@@ -140,9 +140,9 @@ static inline void stf_server_key_rotation_intermediate(void)
         assert(seed_len == 20);
 
 	if (validate == 0)
-		validate = 1;
-	else if (validate == -1)
 		validate = 0;
+	else if (validate == -1)
+		validate = 1;
 
         memset(&temp_key, 0, sizeof(temp_key));
         memset(&nonce_params, 0, sizeof(nonce_params));

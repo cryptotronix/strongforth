@@ -46,6 +46,7 @@
 #define STF_SYSCALL_SHA256_UPDATE ZF_SYSCALL_USER + 15
 #define STF_SYSCALL_SHA256_FINALIZE ZF_SYSCALL_USER + 16
 #define STF_SYSCALL_BUFFER_CMP ZF_SYSCALL_USER + 17
+#define STF_SYSCALL_BUFFER_COPY ZF_SYSCALL_USER + 18
 
 /* syscall ranges */
 #define STF_SYSCALLS_COMMON ZF_SYSCALL_USER + 20
@@ -401,6 +402,24 @@ static inline void stf_buffer_compare(void)
 	zf_push(-1);
 }
 
+static inline void stf_buffer_copy(void)
+{
+        uint8_t *bufsrc;
+        int bs_len = get_crypto_pointer(&bufsrc, zf_pop());
+
+        uint8_t *bufdest;
+        int bd_len = get_crypto_pointer(&bufdest, zf_pop());
+
+	if (bs_len > bd_len)
+	{
+        	LOG ("err: src buf larger than dest buf\n");
+		zf_abort(ZF_ABORT_INVALID_SIZE);
+	}
+
+	memset(bufdest, 0, bd_len);
+	memcpy(bufdest, bufsrc, bs_len);
+}
+
 /*
  * Sys callback function
  */
@@ -499,6 +518,10 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 
 		case STF_SYSCALL_BUFFER_CMP:
 			stf_buffer_compare();
+			break;
+
+		case STF_SYSCALL_BUFFER_COPY:
+			stf_buffer_copy();
 			break;
 
     	    	default:
