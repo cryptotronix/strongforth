@@ -170,7 +170,9 @@ static inline void stf_b32tell(void)
     zf_addr addr = zf_pop();
     uint8_t *data;
     zf_cell len = get_crypto_pointer(&data, addr);
-    size_t encoded_len = (((len * 8) + (5 - ((len * 8) % 5))) / 5);
+    size_t encoded_len = ((len * 8) / 5);
+    if ((len * 8) % 5 > 0)
+	    encoded_len++;
 
     char *retbuf = allot_retbuf(encoded_len + 1);
     if (retbuf){
