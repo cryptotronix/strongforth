@@ -774,11 +774,12 @@ static void handle_word(const char *buf)
 		/* Word not found: try to convert to a number and compile or push, depending
 		 * on state */
 
-		zf_cell v = zf_host_parse_num(buf);
+		uint8_t b32 = 0;
+		zf_cell v = zf_host_parse_num(buf, &b32);
 
 		if(COMPILING) {
 			dict_add_lit(v);
-		} else {
+		} else if(!b32) {
 			zf_push(v);
 		}
 	}

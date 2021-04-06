@@ -540,7 +540,7 @@ void zf_host_trace(const char *fmt, va_list va)
  * Parse number
  */
 
-zf_cell zf_host_parse_num(const char *buf)
+zf_cell zf_host_parse_num(const char *buf, uint8_t *b32)
 {
 	zf_cell v;
         uint8_t *b32buf;
@@ -551,6 +551,7 @@ zf_cell zf_host_parse_num(const char *buf)
 
         if (B32_INPUT != 0)
         {
+		*b32 = -1;
                 addr = B32_INPUT;
                 B32_INPUT = 0;
 
@@ -558,10 +559,10 @@ zf_cell zf_host_parse_num(const char *buf)
                 decolen = base32_decode((const uint8_t*) buf, b32buf, b32len);
                 if (decolen < 1)
 		        zf_abort(ZF_ABORT_NOT_A_WORD);
-                v = addr;
         }
         else
         {
+		*b32 = 0;
 	        int r = sscanf(buf, "%d", &v);
 	        if(r == 0) {
 		        zf_abort(ZF_ABORT_NOT_A_WORD);
