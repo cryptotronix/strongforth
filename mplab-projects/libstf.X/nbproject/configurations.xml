@@ -296,7 +296,7 @@
         <property key="no-system-directories" value="false"/>
         <property key="optimization-level" value="-O1"/>
         <property key="pack-struct" value="true"/>
-        <property key="preprocessor-macros" value=""/>
+        <property key="preprocessor-macros" value="STF_DEVICE"/>
         <property key="preprocessor-macros-undefined" value=""/>
         <property key="save-temps" value="false"/>
         <property key="short-calls" value="false"/>
@@ -344,7 +344,7 @@
         <property key="communication.activationmode" value="nohv"/>
         <property key="communication.interface" value="updi"/>
         <property key="communication.speed" value="0.500"/>
-        <property key="debugoptions.useswbreakpoints" value="false"/>
+        <property key="debugoptions.useswbreakpoints" value="true"/>
         <property key="firmware.path"
                   value="Press to browse for a specific firmware version"/>
         <property key="firmware.toolpack"
@@ -366,6 +366,8 @@
         <property key="memories.programmemory.ranges" value="0-5fff"/>
         <property key="memories.rww" value="true"/>
         <property key="poweroptions.powerenable" value="false"/>
+        <property key="programmerToGoFilePath"
+                  value="/home/chris/strongforth/mplab-projects/libstf.X/debug/atmega4809/libstf_ptg"/>
         <property key="programoptions.eraseb4program" value="true"/>
         <property key="programoptions.preservedataflash" value="false"/>
         <property key="programoptions.preservedataflash.ranges"
