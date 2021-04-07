@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <title>Web Bluetooth Example</title>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+        <style>
+            pre#log {
+                white-space: pre-wrap;
+            }
+        </style>
+    </head>
+    <body class="bg-light">
+        <div class="container">
+            <div class="row min-vh-100">
+                <div class="col">
+                    <div class="d-flex flex-column vh-100">
+                        
+                        <div class="row p-3 my-3 text-center">
+                            <div class="col">
+                                <h2>RN4870 Bluetooth Test</h2>
+                            </div>
+                        </div>
+
+                        <div id="noBTAlert" class="row alert alert-danger d-none">
+                            <div class="col">
+                                <h4 class="alert-heading">Missing Web Bluetooth Support!</h4>
+                                <hr>
+                                <p>Could not detect Web Bluetooth API support in your current browser. 
+                                Please make sure to use a <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Bluetooth_API#Browser_compatibility" class="alert-link">compatible browser</a>.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div id="mainForm" class="row d-none">
+                            <div class="col">
+                                <button id="connectBtn" class="btn btn-block btn-success mb-3 mr-3">Connect</button>
+                            </div>
+                            <div class="col-9">
+                                
+                                    <div class="input-group mb-3 mr-3">
+                                        <input type="text" id="stfText" class="form-control" placeholder="1 1 + 1 sys" required>
+                                        <div class="input-group-append">
+                                            <button id="sendBtn" class="btn btn-primary" disabled>Send</button>
+                                        </div>
+                                    </div>
+                                
+                            </div>
+                            <div class="col">
+                                <button id="disconnectBtn" class="btn btn-block btn-danger mb-3 mr-3" disabled>Disconnect</button>
+                            </div>
+                        </div>
+
+                        <div id="logRow" class="row mb-3 p-3 bg-dark flex-grow-1 overflow-auto">
+                            <div class="col">
+                                <pre id="log" class="text-white"></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="main.js"></script>
+        <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js" integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/axios@0.20.0/dist/axios.min.js" integrity="sha256-KyY5SqyBmXeM0zfYBGU1tuqcstxpjkECApypY+CA4Z8=" crossorigin="anonymous"></script>
+    </body>
+</html>
