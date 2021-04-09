@@ -141,52 +141,30 @@
 
 ( crypto registers for big numbers )
 
-var pub 64 1 + allot
-var pri 32 1 + allot
-var sig 64 1 + allot
-var ran 32 1 + allot
-var dig 32 1 + allot
-var cnt 4 1 + allot
+: pub 0 ;
+: pri 1 ;
+: sig 2 ;
+: ran 3 ;
+: dig 4 ;
+: shs 5 ;
+: ser 6 ;
+: ver 7 ;
+: gen 8 ;
+: see 9 ;
+: cnt 10 ;
 
-var shs 32 1 + allot
-var ser 9 1 + allot
-var ver 19 1 + allot
-var gen 3 1 + allot
-var see 20 1 + allot
+: c 11 ;
+: m 12 ;
+: k 13 ;
 
-var c 64 1 + allot
-var m 28 1 + allot
-var k 32 1 + allot
+: epk 14 ;
+: non 15 ;
 
-var epk 64 1 + allot
-var non 32 1 + allot
+: upl 16 ;
+: dol 17 ;
 
-var upl 32 1 + allot
-var dol 32 1 + allot
-
-
-( setting size byte )
-64 pub !u8
-64 sig !u8
-32 ran !u8
-32 dig !u8
-32 pri !u8
-32 shs !u8
-9  ser !u8
-19 ver !u8
-3  gen !u8
-20 see !u8
-4  cnt !u8
-
-64 c !u8
-28 m !u8
-32 k !u8
-
-64 epk !u8
-32 non !u8
-
-32 upl !u8
-32 dol !u8
+: uid 18 ;
+: did 19 ;
 
 : pub< pub 32< ;
 : pri< pri 32< ;
@@ -204,13 +182,12 @@ var dol 32 1 + allot
 : dol< dol 32< ;
 : m< m 32< ;
 : c< c 32< ;
+: uid< uid 32< ;
+: did< did 32< ;
 
 ( ENCRYPTION COMMANDS )
 
-var uid
-var did
-
-: ecdhkdf upl 0 shs hydrokdf dol 1 shs hydrokdf 0 uid ! 0 did ! ;
+: ecdhkdf upl 0 shs hydrokdf dol 1 shs hydrokdf uid memzero did memzero ;
 
 ( reversed )
 : ecdhkdfr dol 0 shs hydrokdf upl 1 shs hydrokdf 0 did ! 0 uid ! ;
@@ -220,8 +197,8 @@ var did
 	." upl< " upl 32>
 	." dol< " dol 32> ;
 
-: encrypt ( mlen -- ) c swap m uid @ k hydroe uid dup @ 1 + swap ! ;
-: decrypt ( -- ) c m did @ k hydrod dup 0 = unless did dup @ 1 + swap ! fi ;
+: encrypt ( mlen -- ) c swap m uid k hydroe ;
+: decrypt ( -- ) c m did k hydrod ;
 
 ( stateless )
 : encrypts ( mlen -- ) encrypt uid @ . ." uid ! " did @ . ." did ! | ";

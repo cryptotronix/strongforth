@@ -8,6 +8,9 @@
 
 #include "zforth.h"
 
+#ifdef ZF_CONST_DICTIONARY
+#include "dict.h"
+#endif
 
 /* Flags and length encoded in words */
 
@@ -49,6 +52,9 @@ typedef enum {
 	PRIM_COUNT
 } zf_prim;
 
+/* We only need these for the bootstrap function. */
+#ifdef ZF_CONST_DICTIONARY
+#elif ZF_ENABLE_BOOTSTRAP
 static const char prim_names[] =
 	_("exit")    _("lit")        _("<0")    _(":")     _("_;")        _("+")
 	_("-")       _("*")          _("/")     _("%")     _("drop")      _("dup")
@@ -56,13 +62,19 @@ static const char prim_names[] =
 	_("jmp")     _("jmp0")       _("'")     _("_(")    _(">r")        _("r>")
 	_("=")       _("sys")        _("pick")  _(",,")    _("key")       _("lits")
 	_("##")      _("&");
+#else
+#endif
 
 
 /* Stacks and dictionary memory */
 
 static zf_cell rstack[ZF_RSTACK_SIZE];
 static zf_cell dstack[ZF_DSTACK_SIZE];
+#ifdef ZF_CONST_DICTIONARY
+extern const uint8_t dict[ZF_DICT_SIZE];
+#else
 static uint8_t dict[ZF_DICT_SIZE];
+#endif
 
 /* State and stack and interpreter pointers */
 
@@ -87,8 +99,13 @@ static jmp_buf jmpbuf;
 #define POSTPONE  uservar[4]    /* flag to indicate next imm word should be compiled */
 #define USERVAR_COUNT 5
 
+/* We only need these for the bootstrap function. */
+#ifdef ZF_CONST_DICTIONARY
+#elif ZF_ENABLE_BOOTSTRAP
 static const char uservar_names[] =
 	_("h")   _("latest") _("trace")  _("compiling")  _("_postpone");
+#else
+#endif
 
 static zf_addr *uservar = (zf_addr *)dict;
 
@@ -223,11 +240,16 @@ zf_cell zf_pickr(zf_addr n)
 
 zf_addr dict_put_bytes(zf_addr addr, const void *buf, size_t len)
 {
+#ifdef ZF_CONST_DICTIONARY
+	zf_abort(ZF_ABORT_DICT_WRITE_DISABLED);
+	return 0;
+#else
 	const uint8_t *p = (const uint8_t *)buf;
 	size_t i = len;
 	CHECK(addr < ZF_DICT_SIZE-len, ZF_ABORT_OUTSIDE_MEM);
 	while(i--) dict[addr++] = *p++;
 	return len;
+#endif
 }
 
 
@@ -824,16 +846,23 @@ static void handle_char(char c)
 
 void zf_init(int enable_trace)
 {
+#ifdef ZF_CONST_DICTIONARY
+	dsp = 0;
+	rsp = 0;
+#else
 	HERE = USERVAR_COUNT * sizeof(zf_addr);
 	TRACE = enable_trace;
 	LATEST = 0;
 	dsp = 0;
 	rsp = 0;
 	COMPILING = 0;
+#endif
 }
 
 
-#if ZF_ENABLE_BOOTSTRAP
+#ifdef ZF_CONST_DICTIONARY
+void zf_bootstrap(void) {}
+#elif ZF_ENABLE_BOOTSTRAP
 
 /*
  * Functions for bootstrapping the dictionary by adding all primitive ops and the
@@ -902,19 +931,28 @@ zf_result zf_eval(const char *buf)
 			buf ++;
 		}
 	} else {
+#ifndef ZF_CONST_DICTIONARY
 		COMPILING = 0;
+#endif
 		rsp = 0;
 		dsp = 0;
 		return r;
 	}
 }
 
-
+#ifdef ZF_CONST_DICTIONARY
+const void *zf_dump(size_t *len)
+{
+	if(len) *len = sizeof(dict);
+	return dict;
+}
+#else
 void *zf_dump(size_t *len)
 {
 	if(len) *len = sizeof(dict);
 	return dict;
 }
+#endif
 
 /*
  * End

@@ -153,10 +153,10 @@ def test_se(url):
         print_array(responses)
         return resp[0][1]
 
-    resp = requests.post(url, msg + ' k uplink bufcpy 28 encrypt ." c< " c 32>')
+    resp = requests.post(url, msg + ' k upl bufcpy 28 encrypt ." c< " c 32>')
     responses.append(resp.text)
 
-    resp = stf.stf_eval([resp.text.encode("utf-8") + b" k dolink bufcpy decrypt m 32>"])
+    resp = stf.stf_eval([resp.text.encode("utf-8") + b" k dol bufcpy decrypt m 32>"])
     responses.append(str(resp[0][1]) + " : " + resp[0][2])
 
     if resp[0][2] != 'EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE ':
@@ -173,7 +173,7 @@ def test_ses(url):
     resp = stf.stf_eval([b"se1s"])
     responses.append(str(resp[0][1]) + " : " + resp[0][2])
 
-    resp = requests.post(url, s14_priv + resp[0][2] + " dolink memzero uplink memzero pri memzero pub memzero 0 domsgid ! 0 upmsgid !")
+    resp = requests.post(url, s14_priv + resp[0][2] + " dol memzero upl memzero pri memzero pub memzero did memzero uid memzero")
     responses.append(resp.text)
 
     enc_info = resp.text.split("|")
@@ -186,18 +186,18 @@ def test_ses(url):
         print_array(responses)
         return resp[0][1]
 
-    resp = requests.post(url, msg + enc_info[2] + ' k uplink bufcpy 28 encrypts ." c< " c 32> m memzero')
+    resp = requests.post(url, msg + enc_info[2] + ' k upl bufcpy 28 encrypts ." c< " c 32> m memzero')
     responses.append(resp.text)
 
     msg_info = resp.text.split("|")
 
-    resp = stf.stf_eval([msg_info[1].encode("utf-8") + b' k dolink bufcpy decrypt ." m< " m 32>'])
+    resp = stf.stf_eval([msg_info[1].encode("utf-8") + b' k dol bufcpy decrypt ." m< " m 32>'])
     responses.append(str(resp[0][1]) + " : " + resp[0][2])
 
-    resp = stf.stf_eval([resp[0][2].encode("utf-8") + b' k uplink bufcpy 28 encrypt ." c< " c 32>'])
+    resp = stf.stf_eval([resp[0][2].encode("utf-8") + b' k upl bufcpy 28 encrypt ." c< " c 32>'])
     responses.append(str(resp[0][1]) + " : " + resp[0][2])
 
-    resp = requests.post(url, resp[0][2] + msg_info[0] + enc_info[2] + ' k dolink bufcpy decrypts m 32>')
+    resp = requests.post(url, resp[0][2] + msg_info[0] + enc_info[2] + ' k dol bufcpy decrypts m 32>')
     responses.append(resp.text)
 
     if resp.text.split("|")[1] != ' EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE ':

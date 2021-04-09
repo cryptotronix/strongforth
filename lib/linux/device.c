@@ -21,8 +21,16 @@
 
 static inline void stf_device_get_random(void)
 {
-    zf_addr addr = zf_pop();
-    ATCA_STATUS status = atcab_random(dict_get_pointer(addr + 1, ATCA_KEY_SIZE));
+    uint8_t *ran;
+    zf_cell rlen = get_register(&ran, zf_pop());
+
+    if (rlen != ATCA_KEY_SIZE)
+    {
+        LOG("rand buf not %i bytes.", ATCA_KEY_SIZE);
+	zf_abort(ZF_ABORT_INVALID_SIZE);
+    }
+
+    ATCA_STATUS status = atcab_random(ran);
     if (status != ATCA_SUCCESS)
     {
         LOG("atcab_random() failed: %02x\r\n", status);
@@ -34,7 +42,7 @@ static inline void stf_device_get_counter(void)
 {
 #define COUNT_SIZE 4
     uint8_t *count;
-    zf_cell c_len = get_crypto_pointer(&count, zf_pop());
+    zf_cell c_len = get_register(&count, zf_pop());
 
     if (c_len != COUNT_SIZE)
     {
@@ -58,7 +66,7 @@ static inline void stf_device_get_counter_inc(void)
 {
 #define COUNT_SIZE 4
     uint8_t *count;
-    zf_cell c_len = get_crypto_pointer(&count, zf_pop());
+    zf_cell c_len = get_register(&count, zf_pop());
 
     if (c_len != COUNT_SIZE)
     {
@@ -81,12 +89,12 @@ static inline void stf_device_get_counter_inc(void)
 static inline void stf_device_do_ecdsa_sign(void)
 {
     uint8_t *sig;
-    zf_cell siglen = get_crypto_pointer(&sig, zf_pop());
+    zf_cell siglen = get_register(&sig, zf_pop());
 
     zf_cell pri_key_id = zf_pop();
 
     uint8_t *digest;
-    zf_cell diglen = get_crypto_pointer(&digest, zf_pop());
+    zf_cell diglen = get_register(&digest, zf_pop());
 
     if (siglen != ATCA_ECCP256_SIG_SIZE)
     {
@@ -111,12 +119,12 @@ static inline void stf_device_do_ecdsa_sign(void)
 static inline void stf_device_do_ecdsa_verify(void)
 {
     uint8_t *sig;
-    zf_cell siglen = get_crypto_pointer(&sig, zf_pop());
+    zf_cell siglen = get_register(&sig, zf_pop());
 
     zf_cell pub_key_id = zf_pop();
 
     uint8_t *digest;
-    zf_cell diglen = get_crypto_pointer(&digest, zf_pop());
+    zf_cell diglen = get_register(&digest, zf_pop());
 
     int8_t verified = 0;
 
@@ -146,10 +154,10 @@ static inline void stf_device_get_pubkey(void)
 {
     uint8_t *pubkey;
     zf_addr pk_addr = zf_pop();
-    uint8_t len = get_crypto_pointer(&pubkey, pk_addr);
+    uint8_t len = get_register(&pubkey, pk_addr);
     if (len != ATCA_ECCP256_PUBKEY_SIZE)
     {
-        LOG("pubkey buf not 64 bytes.");
+        LOG("pubkey buf not 64 bytes.\n");
 	zf_abort(ZF_ABORT_INVALID_SIZE);
     }
 
@@ -165,10 +173,10 @@ static inline void stf_device_set_pubkey(void)
 {
     uint8_t *pubkey;
     zf_addr pk_addr = zf_pop();
-    uint8_t len = get_crypto_pointer(&pubkey, pk_addr);
+    uint8_t len = get_register(&pubkey, pk_addr);
     if (len != ATCA_ECCP256_PUBKEY_SIZE)
     {
-        LOG("pubkey buf not 64 bytes.");
+        LOG("pubkey buf not 64 bytes.\n");
 	zf_abort(ZF_ABORT_INVALID_SIZE);
     }
 
@@ -183,16 +191,16 @@ static inline void stf_device_set_pubkey(void)
 static inline void stf_device_do_ecdh(void)
 {
     uint8_t *sharsec;
-    zf_cell shsclen = get_crypto_pointer(&sharsec, zf_pop());
+    zf_cell shsclen = get_register(&sharsec, zf_pop());
 
     zf_cell pri_key_id = zf_pop();
 
     uint8_t *pubkey;
-    uint8_t pklen = get_crypto_pointer(&pubkey, zf_pop());
+    uint8_t pklen = get_register(&pubkey, zf_pop());
 
     if (pklen != ATCA_ECCP256_PUBKEY_SIZE)
     {
-        LOG("pubkey buf not 64 bytes.");
+        LOG("pubkey buf not 64 bytes.\n");
 	zf_abort(ZF_ABORT_INVALID_SIZE);
     }
 
@@ -213,11 +221,11 @@ static inline void stf_device_do_ecdh(void)
 static inline void stf_device_do_genkey(void)
 {
     uint8_t *pubkey;
-    uint8_t pklen = get_crypto_pointer(&pubkey, zf_pop());
+    uint8_t pklen = get_register(&pubkey, zf_pop());
 
     if (pklen != ATCA_ECCP256_PUBKEY_SIZE)
     {
-        LOG("pubkey buf not 64 bytes.");
+        LOG("pubkey buf not 64 bytes.\n");
 	zf_abort(ZF_ABORT_INVALID_SIZE);
     }
 
@@ -232,7 +240,7 @@ static inline void stf_device_do_genkey(void)
 static inline void stf_device_get_serial(void)
 {
     uint8_t *serial;
-    zf_cell serlen = get_crypto_pointer(&serial, zf_pop());
+    zf_cell serlen = get_register(&serial, zf_pop());
 
     if (serlen != SERIAL_NUM_LEN)
     {
@@ -252,22 +260,22 @@ static inline void stf_device_prep_key_rotate(void)
 {
     /* returning the rotating key */
     uint8_t *pubkey;
-    uint8_t pklen = get_crypto_pointer(&pubkey, zf_pop());
+    uint8_t pklen = get_register(&pubkey, zf_pop());
 
     /* getting rand out */
     uint8_t *random;
-    uint8_t ranlen = get_crypto_pointer(&random, zf_pop());
+    uint8_t ranlen = get_register(&random, zf_pop());
 
     /* getting seed */
     uint8_t *seed;
-    uint8_t selen = get_crypto_pointer(&seed, zf_pop());
+    uint8_t selen = get_register(&seed, zf_pop());
 
     uint16_t slot_config = 0;
     uint16_t key_config = 0;
 
     if (pklen != ATCA_ECCP256_PUBKEY_SIZE)
     {
-        LOG("pubkey buf not 64 bytes.");
+        LOG("pubkey buf not 64 bytes.\n");
 	zf_abort(ZF_ABORT_INVALID_SIZE);
     }
 
@@ -331,15 +339,15 @@ static inline void stf_device_key_rotate(void)
 {
     /* signature */
     uint8_t *sig;
-    zf_cell siglen = get_crypto_pointer(&sig, zf_pop());
+    zf_cell siglen = get_register(&sig, zf_pop());
 
     /* get genkey data */
     uint8_t *gendata;
-    zf_cell genlen = get_crypto_pointer(&gendata, zf_pop());
+    zf_cell genlen = get_register(&gendata, zf_pop());
 
     /* get verifiaction data */
     uint8_t *verdata;
-    zf_cell verlen = get_crypto_pointer(&verdata, zf_pop());
+    zf_cell verlen = get_register(&verdata, zf_pop());
 
     zf_cell validate = zf_pop();
 
@@ -400,11 +408,11 @@ static inline void stf_device_key_rotate(void)
 static inline void stf_device_read_pubkey_slot(void)
 {
     uint8_t *pubkey;
-    uint8_t pklen = get_crypto_pointer(&pubkey, zf_pop());
+    uint8_t pklen = get_register(&pubkey, zf_pop());
 
     if (pklen != ATCA_ECCP256_PUBKEY_SIZE)
     {
-        LOG("pubkey buf not 64 bytes.");
+        LOG("pubkey buf not 64 bytes.\n");
 	zf_abort(ZF_ABORT_INVALID_SIZE);
     }
 

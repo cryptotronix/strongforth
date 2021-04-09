@@ -13,10 +13,10 @@
 #include "hydrogen.h"
 #include "common.h"
 
-#if defined(STF_DEVICE)
+#ifdef STF_DEVICE
 #include "device.h"
 #endif
-#if defined(STF_SERVER)
+#ifdef STF_SERVER
 #include "server.h"
 #endif
 
@@ -55,7 +55,11 @@ sw_sha256_ctx g_sha256_ctx;
 
 static zf_cell STRONGFORTH_STATUS = 0;
 
+#ifdef ZF_CONST_DICTIONARY
+static uint32_t B32_INPUT = ~0;
+#else
 static zf_addr B32_INPUT = 0;
+#endif
 
 static char RETURN_BUF[STF_RETURN_BUF_LEN] = {0};
 static size_t RETBUF_INDEX = 0;
@@ -140,7 +144,11 @@ static inline void stf_include(const char *fname)
 static inline void stf_save(const char *fname)
 {
 	size_t len;
+#ifdef ZF_CONST_DICTIONARY
+	const void *p = zf_dump(&len);
+#else
 	void *p = zf_dump(&len);
+#endif
 	FILE *f = fopen(fname, "wb");
 	if (f)
     {
@@ -170,7 +178,7 @@ static inline void stf_b32tell(void)
 {
     zf_addr addr = zf_pop();
     uint8_t *data;
-    zf_cell len = get_crypto_pointer(&data, addr);
+    zf_cell len = get_register(&data, addr);
     size_t encoded_len = ((len * 8) / 5);
     if ((len * 8) % 5 > 0)
 	    encoded_len++;
@@ -190,7 +198,7 @@ static inline void stf_set_strongforth_status(void)
 static inline void stf_crypto_secretbox_keygen(void)
 {
     uint8_t *key_buf = NULL;
-    uint8_t l = get_crypto_pointer (&key_buf, zf_pop());
+    uint8_t l = get_register (&key_buf, zf_pop());
     if (32 == l)
     {
         hydro_secretbox_keygen (key_buf);
@@ -201,7 +209,7 @@ static inline void stf_crypto_secretbox_keygen(void)
 static inline void stf_crypto_secretbox_encrypt ()
 {
     uint8_t *key_buf = NULL;
-    uint8_t l = get_crypto_pointer (&key_buf, zf_pop());
+    uint8_t l = get_register (&key_buf, zf_pop());
     if (32 != l)
     {
         LOG ("key buff wrong size\n");
@@ -209,11 +217,22 @@ static inline void stf_crypto_secretbox_encrypt ()
         return;
     }
 
-
+#ifdef ZF_CONST_DICTIONARY
+    uint8_t *msg_id = NULL;
+    l = get_register (&msg_id, zf_pop());
+    if (4 != l)
+    {
+        LOG ("msgid wrong size\n");
+	zf_abort(ZF_ABORT_INTERNAL_ERROR);
+        return;
+    }
+#else
     uint32_t msg_id = zf_pop();
+#endif
+
 
     uint8_t *m_buf = NULL;
-    l = get_crypto_pointer (&m_buf, zf_pop());
+    l = get_register (&m_buf, zf_pop());
     if (STH_SECRETBOX_MLEN != l)
     {
         LOG ("m buff wrong size\n");
@@ -239,42 +258,72 @@ static inline void stf_crypto_secretbox_encrypt ()
 
 
     uint8_t *c_buf = NULL;
-    l = get_crypto_pointer (&c_buf, zf_pop());
+    l = get_register (&c_buf, zf_pop());
     if (STH_SECRETBOX_CLEN != l)
     {
         LOG ("ctext  fail fail\n");
 	zf_abort(ZF_ABORT_INTERNAL_ERROR);
     }
 
+#ifdef ZF_CONST_DICTIONARY
+    hydro_secretbox_encrypt(c_buf, m_buf, STH_SECRETBOX_MLEN,
+                            (uint32_t) *msg_id, HYDRO_CONTEXT,
+                            key_buf);
+#else
     hydro_secretbox_encrypt(c_buf, m_buf, STH_SECRETBOX_MLEN,
                             msg_id, HYDRO_CONTEXT,
                             key_buf);
+#endif
+
+#ifdef ZF_CONST_DICTIONARY
+    *msg_id = (uint32_t) *msg_id + 1;
+#endif
 }
 
 static inline void stf_crypto_secretbox_decrypt ()
 {
     uint8_t *key_buf = NULL;
-    uint8_t l = get_crypto_pointer (&key_buf, zf_pop());
+    uint8_t l = get_register (&key_buf, zf_pop());
     if (32 != l)
         return;
 
+#ifdef ZF_CONST_DICTIONARY
+    uint8_t *msg_id = NULL;
+    l = get_register (&msg_id, zf_pop());
+    if (4 != l)
+    {
+        LOG ("msgid wrong size\n");
+	zf_abort(ZF_ABORT_INTERNAL_ERROR);
+        return;
+    }
+#else
     uint32_t msg_id = zf_pop();
+#endif
 
     uint8_t *m_buf = NULL;
-    l = get_crypto_pointer (&m_buf, zf_pop());
+    l = get_register (&m_buf, zf_pop());
     if (STH_SECRETBOX_MLEN != l)
         return;
 
     uint8_t *c_buf = NULL;
-    l = get_crypto_pointer (&c_buf, zf_pop());
+    l = get_register (&c_buf, zf_pop());
     if (STH_SECRETBOX_CLEN != l)
         return;
 
+#ifdef ZF_CONST_DICTIONARY
+    int rc = hydro_secretbox_decrypt(m_buf, c_buf, STH_SECRETBOX_CLEN,
+                                     (uint32_t) *msg_id, HYDRO_CONTEXT, key_buf);
+#else
     int rc = hydro_secretbox_decrypt(m_buf, c_buf, STH_SECRETBOX_CLEN,
                                      msg_id, HYDRO_CONTEXT, key_buf);
+#endif
 
     if (0 == rc)
     {
+#ifdef ZF_CONST_DICTIONARY
+    	*msg_id = (uint32_t) *msg_id + 1;
+#endif
+
         ssize_t unpad =  (uint32_t)hydro_unpad(m_buf,
                                                STH_SECRETBOX_MLEN,
                                                STH_SECRETBOX_MLEN);
@@ -298,7 +347,7 @@ static inline void stf_crypto_secretbox_decrypt ()
 static inline void stf_crypto_memzero ()
 {
     uint8_t *buf = NULL;
-    uint8_t l = get_crypto_pointer (&buf, zf_pop());
+    uint8_t l = get_register (&buf, zf_pop());
 
     hydro_memzero (buf, l);
 
@@ -307,7 +356,7 @@ static inline void stf_crypto_memzero ()
 static inline void stf_crypto_random_fill()
 {
     uint8_t *buf = NULL;
-    uint8_t l = get_crypto_pointer (&buf, zf_pop());
+    uint8_t l = get_register (&buf, zf_pop());
 
     if (buf)
         hydro_random_buf(buf, l);
@@ -316,7 +365,7 @@ static inline void stf_crypto_random_fill()
 static inline void stf_crypto_kdf()
 {
     uint8_t *master_key = NULL;
-    uint8_t l = get_crypto_pointer (&master_key, zf_pop());
+    uint8_t l = get_register (&master_key, zf_pop());
     if (l != hydro_kdf_KEYBYTES)
     {
         LOG("invalid kdf keybytes\n");
@@ -327,7 +376,7 @@ static inline void stf_crypto_kdf()
     uint32_t sub_key_id = zf_pop();
 
     uint8_t *sub_key = NULL;
-    uint8_t skl = get_crypto_pointer (&sub_key, zf_pop());
+    uint8_t skl = get_register (&sub_key, zf_pop());
     if (skl < 16 || skl > 64)
     {
         LOG("invalid subkey buffer\n");
@@ -340,10 +389,10 @@ static inline void stf_crypto_kdf()
 static inline void stf_debug_copy_buf()
 {
     uint8_t *a = NULL;
-    uint8_t al = get_crypto_pointer (&a, zf_pop());
+    uint8_t al = get_register (&a, zf_pop());
 
     uint8_t *b = NULL;
-    uint8_t bl = get_crypto_pointer (&b, zf_pop());
+    uint8_t bl = get_register (&b, zf_pop());
 
     assert (al == bl);
 
@@ -358,7 +407,7 @@ static inline void stf_sha256_init(void)
 static inline void stf_sha256_update(void)
 {
         uint8_t *p;
-        int p_len = get_crypto_pointer(&p, zf_pop());
+        int p_len = get_register(&p, zf_pop());
 
         sw_sha256_update(&g_sha256_ctx, p, p_len);
 }
@@ -366,7 +415,7 @@ static inline void stf_sha256_update(void)
 static inline void stf_sha256_finalize(void)
 {
         uint8_t *p;
-        int p_len = get_crypto_pointer(&p, zf_pop());
+        int p_len = get_register(&p, zf_pop());
         assert (32 == p_len);
 
         sw_sha256_final(&g_sha256_ctx, p);
@@ -378,10 +427,10 @@ static inline void stf_sha256_finalize(void)
 static inline void stf_buffer_compare(void)
 {
         uint8_t *buf1;
-        int b1_len = get_crypto_pointer(&buf1, zf_pop());
+        int b1_len = get_register(&buf1, zf_pop());
 
         uint8_t *buf2;
-        int b2_len = get_crypto_pointer(&buf2, zf_pop());
+        int b2_len = get_register(&buf2, zf_pop());
 
 	if (b1_len != b2_len)
 	{
@@ -405,10 +454,10 @@ static inline void stf_buffer_compare(void)
 static inline void stf_buffer_copy(void)
 {
         uint8_t *bufsrc;
-        int bs_len = get_crypto_pointer(&bufsrc, zf_pop());
+        int bs_len = get_register(&bufsrc, zf_pop());
 
         uint8_t *bufdest;
-        int bd_len = get_crypto_pointer(&bufdest, zf_pop());
+        int bd_len = get_register(&bufdest, zf_pop());
 
 	if (bs_len > bd_len)
 	{
@@ -571,14 +620,20 @@ zf_cell zf_host_parse_num(const char *buf, uint8_t *b32)
         int8_t decolen;
         zf_addr addr;
 
-
+#ifdef ZF_CONST_DICTIONARY
+        if (B32_INPUT != (uint32_t) ~0)
+        {
+                addr = B32_INPUT;
+                B32_INPUT = ~0;
+#else
         if (B32_INPUT != 0)
         {
-		*b32 = -1;
                 addr = B32_INPUT;
                 B32_INPUT = 0;
+#endif
+		*b32 = -1;
 
-		b32len = get_crypto_pointer(&b32buf, addr);
+		b32len = get_register(&b32buf, addr);
                 decolen = base32_decode((const uint8_t*) buf, b32buf, b32len);
                 if (decolen < 1)
 		        zf_abort(ZF_ABORT_NOT_A_WORD);
@@ -605,13 +660,23 @@ ATCA_STATUS stf_init (char *dict_path, ATCAIfaceCfg *cfg)
 	// TODO will not be bootstrapping and including in future, will use binary
 	zf_bootstrap();
 	if (dict_path != NULL)
+	{
+#ifdef ZF_CONST_DICTIONARY
+		LOG("warning: no dict loaded, constant dictionary enabled.\n");
+#else
 		stf_include(dict_path);
+#endif
+	}
 
 	ATCA_STATUS stat = ~ATCA_SUCCESS;
 	if (cfg != NULL)
 		stat = atcab_init(cfg);
 	else
 		stat = ATCA_SUCCESS;
+
+#ifdef ZF_CONST_DICTIONARY
+	memset(&STF_REGISTERS, 0, sizeof(stf_register_t));
+#endif
 
 	return stat;
 }
@@ -643,6 +708,8 @@ stf_eval_resp_t stf_eval (const char *buf)
 		case ZF_ABORT_COMPILE_ONLY_WORD: msg = "compile-only word"; break;
 		case ZF_ABORT_INVALID_SIZE: msg = "invalid size"; break;
 		case ZF_ABORT_DIVISION_BY_ZERO: msg = "division by zero"; break;
+		case ZF_ABORT_DICT_WRITE_DISABLED: msg = "cannot write to dictionary"; break;
+		case ZF_ABORT_NOT_A_REGISTER: msg = "register does not exist"; break;
 		default: msg = "unknown error";
 	}
 

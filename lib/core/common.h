@@ -21,11 +21,12 @@
 	#define LOG(...)
 #endif
 
-/* commented out until used
-void set_strongforth_status(zf_cell val)
-*/
+#ifdef ZF_CONST_DICTIONARY
+stf_register_t STF_REGISTERS;
 
-zf_cell get_strongforth_status();
+uint8_t get_register(uint8_t **buf, stf_register_id reg_id);
+#else
+uint8_t get_register(uint8_t **buf, zf_addr addr);
+#endif
 
-uint8_t get_crypto_pointer(uint8_t **buf, zf_addr addr);
 #endif

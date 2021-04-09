@@ -22,7 +22,7 @@
 static inline void stf_server_get_random(void)
 {
         uint8_t *r;
-        int b32len = get_crypto_pointer(&r, zf_pop());
+        int b32len = get_register(&r, zf_pop());
         assert(ATCA_KEY_SIZE == b32len);
 
 	hydro_random_buf(r, ATCA_KEY_SIZE);
@@ -31,11 +31,11 @@ static inline void stf_server_get_random(void)
 static inline void stf_server_do_ecdsa_sign(void)
 {
         uint8_t *sig;
-        int sig_len = get_crypto_pointer(&sig, zf_pop());
+        int sig_len = get_register(&sig, zf_pop());
         uint8_t *prikey;
-        int prikey_len = get_crypto_pointer(&prikey, zf_pop());
+        int prikey_len = get_register(&prikey, zf_pop());
         uint8_t *digest;
-        int digest_len = get_crypto_pointer(&digest, zf_pop());
+        int digest_len = get_register(&digest, zf_pop());
 
         assert(sig_len == 64);
         assert(prikey_len == 32);
@@ -48,11 +48,11 @@ static inline void stf_server_do_ecdsa_sign(void)
 static inline void stf_server_do_ecdsa_verify(void)
 {
         uint8_t *sig;
-        int sig_len = get_crypto_pointer(&sig, zf_pop());
+        int sig_len = get_register(&sig, zf_pop());
         uint8_t *pubkey;
-        int pubkey_len = get_crypto_pointer(&pubkey, zf_pop());
+        int pubkey_len = get_register(&pubkey, zf_pop());
         uint8_t *digest;
-        int digest_len = get_crypto_pointer(&digest, zf_pop());
+        int digest_len = get_register(&digest, zf_pop());
 
         assert(sig_len == 64);
         assert(pubkey_len == 64);
@@ -69,11 +69,11 @@ static inline void stf_server_do_ecdsa_verify(void)
 static inline void stf_server_do_ecdh(void)
 {
         uint8_t *sharedsec;
-        int sharedsec_len = get_crypto_pointer(&sharedsec, zf_pop());
+        int sharedsec_len = get_register(&sharedsec, zf_pop());
         uint8_t *prikey;
-        int prikey_len = get_crypto_pointer(&prikey, zf_pop());
+        int prikey_len = get_register(&prikey, zf_pop());
         uint8_t *pubkey;
-        int pubkey_len = get_crypto_pointer(&pubkey, zf_pop());
+        int pubkey_len = get_register(&pubkey, zf_pop());
 
         assert(pubkey_len == 64);
         assert(prikey_len == 32);
@@ -86,9 +86,9 @@ static inline void stf_server_do_ecdh(void)
 static inline void stf_server_do_genkey(void)
 {
         uint8_t *pubkey;
-        int pubkey_len = get_crypto_pointer(&pubkey, zf_pop());
+        int pubkey_len = get_register(&pubkey, zf_pop());
         uint8_t *prikey;
-        int prikey_len = get_crypto_pointer(&prikey, zf_pop());
+        int prikey_len = get_register(&prikey, zf_pop());
         assert(pubkey_len == 64);
         assert(prikey_len == 32);
 
@@ -99,25 +99,25 @@ static inline void stf_server_do_genkey(void)
 static inline void stf_server_key_rotation_intermediate(void)
 {
         uint8_t *digest;
-        int digest_len = get_crypto_pointer(&digest, zf_pop());
+        int digest_len = get_register(&digest, zf_pop());
 
         uint8_t *verify_other_data;
-        int verdata_len = get_crypto_pointer(&verify_other_data, zf_pop());
+        int verdata_len = get_register(&verify_other_data, zf_pop());
 
         uint8_t *gen_key_other_data;
-        int gendata_len = get_crypto_pointer(&gen_key_other_data, zf_pop());
+        int gendata_len = get_register(&gen_key_other_data, zf_pop());
 
         uint8_t *serial;
-        int serial_len = get_crypto_pointer(&serial, zf_pop());
+        int serial_len = get_register(&serial, zf_pop());
 
         uint8_t *pubkey;
-        int pubkey_len = get_crypto_pointer(&pubkey, zf_pop());
+        int pubkey_len = get_register(&pubkey, zf_pop());
 
         uint8_t *random;
-        int rand_len = get_crypto_pointer(&random, zf_pop());
+        int rand_len = get_register(&random, zf_pop());
 
         uint8_t *seed;
-        int seed_len = get_crypto_pointer(&seed, zf_pop());
+        int seed_len = get_register(&seed, zf_pop());
 
 	uint16_t key_bit = zf_pop();
 	uint16_t slot_bit = zf_pop();
