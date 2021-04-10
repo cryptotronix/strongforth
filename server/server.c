@@ -156,7 +156,7 @@ static inline void stf_server_key_rotation_intermediate(void)
         if (status != ATCA_SUCCESS)
 	{
 		fprintf(stderr, "atcah_nonce() failed: %02x\r\n", status);
-		zf_abort(ZF_ABORT_INTERNAL_ERROR);
+		zf_abort(ZF_ABORT_CRYPTOAUTHLIB_ERR);
 	}
 
 	memset(gen_key_other_data, 0, 3);
@@ -172,7 +172,7 @@ static inline void stf_server_key_rotation_intermediate(void)
         if (status != ATCA_SUCCESS)
 	{
 		fprintf(stderr, "atcah_gen_key_msg() failed: %02x\r\n", status);
-		zf_abort(ZF_ABORT_INTERNAL_ERROR);
+		zf_abort(ZF_ABORT_CRYPTOAUTHLIB_ERR);
 	}
 
         memset(&sign_params, 0, sizeof(sign_params));
@@ -190,7 +190,7 @@ static inline void stf_server_key_rotation_intermediate(void)
         if (status != ATCA_SUCCESS)
 	{
 		fprintf(stderr, "atcah_sign_internal_msg() failed: %02x\r\n", status);
-		zf_abort(ZF_ABORT_INTERNAL_ERROR);
+		zf_abort(ZF_ABORT_CRYPTOAUTHLIB_ERR);
 	}
 }
 

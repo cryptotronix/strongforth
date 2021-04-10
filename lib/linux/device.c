@@ -26,7 +26,7 @@ static inline void stf_device_get_random(void)
 
     if (rlen != ATCA_KEY_SIZE)
     {
-        LOG("rand buf not %i bytes.", ATCA_KEY_SIZE);
+        LOG("rand buf not %i bytes.\n", ATCA_KEY_SIZE);
 	zf_abort(ZF_ABORT_INVALID_SIZE);
     }
 
@@ -34,7 +34,7 @@ static inline void stf_device_get_random(void)
     if (status != ATCA_SUCCESS)
     {
         LOG("atcab_random() failed: %02x\r\n", status);
-	zf_abort(ZF_ABORT_INTERNAL_ERROR);
+	zf_abort(ZF_ABORT_CRYPTOAUTHLIB_ERR);
     }
 }
 
@@ -46,7 +46,7 @@ static inline void stf_device_get_counter(void)
 
     if (c_len != COUNT_SIZE)
     {
-        LOG("counter buf not %i bytes.", COUNT_SIZE);
+        LOG("counter buf not %i bytes.\n", COUNT_SIZE);
 	zf_abort(ZF_ABORT_INVALID_SIZE);
     }
 
@@ -56,7 +56,7 @@ static inline void stf_device_get_counter(void)
     if (status != ATCA_SUCCESS)
     {
         LOG("atcab_counter_read() failed: %02x\r\n", status);
-	zf_abort(ZF_ABORT_INTERNAL_ERROR);
+	zf_abort(ZF_ABORT_CRYPTOAUTHLIB_ERR);
     }
 
     STORE32_LE(count, counter);
@@ -70,7 +70,7 @@ static inline void stf_device_get_counter_inc(void)
 
     if (c_len != COUNT_SIZE)
     {
-        LOG("counter buf not %i bytes.", COUNT_SIZE);
+        LOG("counter buf not %i bytes.\n", COUNT_SIZE);
 	zf_abort(ZF_ABORT_INVALID_SIZE);
     }
 
@@ -80,7 +80,7 @@ static inline void stf_device_get_counter_inc(void)
     if (status != ATCA_SUCCESS)
     {
         LOG("atcab_counter_increment() failed: %02x\r\n", status);
-	zf_abort(ZF_ABORT_INTERNAL_ERROR);
+	zf_abort(ZF_ABORT_CRYPTOAUTHLIB_ERR);
     }
 
     STORE32_LE(count, counter);
@@ -98,13 +98,13 @@ static inline void stf_device_do_ecdsa_sign(void)
 
     if (siglen != ATCA_ECCP256_SIG_SIZE)
     {
-        LOG("sig buf not 64 bytes.");
+        LOG("sig buf not 64 bytes.\n");
 	zf_abort(ZF_ABORT_INVALID_SIZE);
     }
 
     if (diglen != ATCA_SHA256_DIGEST_SIZE)
     {
-        LOG("digest buf not 32 bytes.");
+        LOG("digest buf not 32 bytes.\n");
 	zf_abort(ZF_ABORT_INVALID_SIZE);
     }
 
@@ -112,7 +112,7 @@ static inline void stf_device_do_ecdsa_sign(void)
     if (status != ATCA_SUCCESS)
     {
         LOG("atcab_sign() failed: %02x\r\n", status);
-	zf_abort(ZF_ABORT_INTERNAL_ERROR);
+	zf_abort(ZF_ABORT_CRYPTOAUTHLIB_ERR);
     }
 }
 
@@ -130,13 +130,13 @@ static inline void stf_device_do_ecdsa_verify(void)
 
     if (siglen != ATCA_ECCP256_SIG_SIZE)
     {
-        LOG("sig buf not 64 bytes.");
+        LOG("sig buf not 64 bytes.\n");
 	zf_abort(ZF_ABORT_INVALID_SIZE);
     }
 
     if (diglen != ATCA_SHA256_DIGEST_SIZE)
     {
-        LOG("digest buf not 32 bytes.");
+        LOG("digest buf not 32 bytes.\n");
 	zf_abort(ZF_ABORT_INVALID_SIZE);
     }
 
@@ -144,7 +144,7 @@ static inline void stf_device_do_ecdsa_verify(void)
     if (status != ATCA_SUCCESS)
     {
         LOG("atcab_verify_extern() failed: %02x\r\n", status);
-	zf_abort(ZF_ABORT_INTERNAL_ERROR);
+	zf_abort(ZF_ABORT_CRYPTOAUTHLIB_ERR);
     }
 
     zf_push(verified ? -1 : 0);
@@ -165,7 +165,7 @@ static inline void stf_device_get_pubkey(void)
     if (status != ATCA_SUCCESS)
     {
         LOG("atcab_get_pubkey() failed: %02x\r\n", status);
-	zf_abort(ZF_ABORT_INTERNAL_ERROR);
+	zf_abort(ZF_ABORT_CRYPTOAUTHLIB_ERR);
     }
 }
 
@@ -184,7 +184,7 @@ static inline void stf_device_set_pubkey(void)
     if (status != ATCA_SUCCESS)
     {
         LOG("atcab_write_pubkey() failed: %02x\r\n", status);
-	zf_abort(ZF_ABORT_INTERNAL_ERROR);
+	zf_abort(ZF_ABORT_CRYPTOAUTHLIB_ERR);
     }
 }
 
@@ -206,7 +206,7 @@ static inline void stf_device_do_ecdh(void)
 
     if (shsclen != ATCA_KEY_SIZE)
     {
-        LOG("sharsec buf not 32 bytes.");
+        LOG("sharsec buf not 32 bytes.\n");
 	zf_abort(ZF_ABORT_INVALID_SIZE);
     }
 
@@ -214,7 +214,7 @@ static inline void stf_device_do_ecdh(void)
     if (status != ATCA_SUCCESS)
     {
         LOG("atcab_ecdh() failed: %02x\r\n", status);
-	zf_abort(ZF_ABORT_INTERNAL_ERROR);
+	zf_abort(ZF_ABORT_CRYPTOAUTHLIB_ERR);
     }
 }
 
@@ -233,7 +233,7 @@ static inline void stf_device_do_genkey(void)
     if (status != ATCA_SUCCESS)
     {
         LOG("atcab_genkey() failed: %02x\r\n", status);
-	zf_abort(ZF_ABORT_INTERNAL_ERROR);
+	zf_abort(ZF_ABORT_CRYPTOAUTHLIB_ERR);
     }
 }
 
@@ -244,7 +244,7 @@ static inline void stf_device_get_serial(void)
 
     if (serlen != SERIAL_NUM_LEN)
     {
-        LOG("serial buf not 9 bytes.");
+        LOG("serial buf not 9 bytes.\n");
 	zf_abort(ZF_ABORT_INVALID_SIZE);
     }
 
@@ -252,7 +252,7 @@ static inline void stf_device_get_serial(void)
     if (status != ATCA_SUCCESS)
     {
         LOG("atcab_read_serial_number() failed: %02x\r\n", status);
-	zf_abort(ZF_ABORT_INTERNAL_ERROR);
+	zf_abort(ZF_ABORT_CRYPTOAUTHLIB_ERR);
     }
 }
 
@@ -281,13 +281,13 @@ static inline void stf_device_prep_key_rotate(void)
 
     if (selen != NONCE_SEED_LEN)
     {
-        LOG("seed must be 20 bytes.");
+        LOG("seed must be 20 bytes.\n");
 	zf_abort(ZF_ABORT_INVALID_SIZE);
     }
 
     if (ranlen != ATCA_KEY_SIZE)
     {
-        LOG("rand must be 32 bytes.");
+        LOG("rand must be 32 bytes.\n");
 	zf_abort(ZF_ABORT_INVALID_SIZE);
     }
 
@@ -295,40 +295,40 @@ static inline void stf_device_prep_key_rotate(void)
     if (status != ATCA_SUCCESS)
     {
         LOG("atcab_nonce() failed: %02x\r\n", status);
-	zf_abort(ZF_ABORT_INTERNAL_ERROR);
+	zf_abort(ZF_ABORT_CRYPTOAUTHLIB_ERR);
     }
 
     status = atcab_read_pubkey(14, pubkey);
     if (status != ATCA_SUCCESS)
     {
         LOG("atcab_read_pubkey() failed: %02x\r\n", status);
-	zf_abort(ZF_ABORT_INTERNAL_ERROR);
+	zf_abort(ZF_ABORT_CRYPTOAUTHLIB_ERR);
     }
 
     status = atcab_read_bytes_zone(ATCA_ZONE_CONFIG, -1, 48, (uint8_t*) &slot_config, 1);
     if (status != ATCA_SUCCESS)
     {
         LOG("atcab_read_bytes_zone() failed: %02x\r\n", status);
-	zf_abort(ZF_ABORT_INTERNAL_ERROR);
+	zf_abort(ZF_ABORT_CRYPTOAUTHLIB_ERR);
     }
     status = atcab_read_bytes_zone(ATCA_ZONE_CONFIG, -1, 49, (uint8_t*) &slot_config + 1, 1);
     if (status != ATCA_SUCCESS)
     {
         LOG("atcab_read_bytes_zone() failed: %02x\r\n", status);
-	zf_abort(ZF_ABORT_INTERNAL_ERROR);
+	zf_abort(ZF_ABORT_CRYPTOAUTHLIB_ERR);
     }
 
     status = atcab_read_bytes_zone(ATCA_ZONE_CONFIG, -1, 124, (uint8_t*) &key_config, 1);
     if (status != ATCA_SUCCESS)
     {
         LOG("atcab_read_bytes_zone() failed: %02x\r\n", status);
-	zf_abort(ZF_ABORT_INTERNAL_ERROR);
+	zf_abort(ZF_ABORT_CRYPTOAUTHLIB_ERR);
     }
     status = atcab_read_bytes_zone(ATCA_ZONE_CONFIG, -1, 125, (uint8_t*) &key_config + 1, 1);
     if (status != ATCA_SUCCESS)
     {
         LOG("atcab_read_bytes_zone() failed: %02x\r\n", status);
-	zf_abort(ZF_ABORT_INTERNAL_ERROR);
+	zf_abort(ZF_ABORT_CRYPTOAUTHLIB_ERR);
     }
 
     zf_push(key_config);
@@ -355,19 +355,19 @@ static inline void stf_device_key_rotate(void)
 
     if (siglen != ATCA_ECCP256_SIG_SIZE)
     {
-        LOG("sig buf not 64 bytes.");
+        LOG("sig buf not 64 bytes.\n");
 	zf_abort(ZF_ABORT_INVALID_SIZE);
     }
 
     if (genlen != KEYGEN_CONFIG_LEN)
     {
-        LOG("gendata buf not 3 bytes.");
+        LOG("gendata buf not 3 bytes.\n");
 	zf_abort(ZF_ABORT_INVALID_SIZE);
     }
 
     if (verlen != VERIFY_CONFIG_LEN)
     {
-        LOG("verdata buf not 19 bytes.");
+        LOG("verdata buf not 19 bytes.\n");
 	zf_abort(ZF_ABORT_INVALID_SIZE);
     }
 
@@ -375,7 +375,7 @@ static inline void stf_device_key_rotate(void)
     if (status != ATCA_SUCCESS)
     {
         LOG("atcab_genkey_base() failed: %02x\r\n", status);
-	zf_abort(ZF_ABORT_INTERNAL_ERROR);
+	zf_abort(ZF_ABORT_CRYPTOAUTHLIB_ERR);
     }
 
     if (validate == -1)
@@ -384,7 +384,7 @@ static inline void stf_device_key_rotate(void)
         if (status != ATCA_SUCCESS)
         {
             LOG("atcab_verify_validate() failed: %02x\r\n", status);
-	    zf_abort(ZF_ABORT_INTERNAL_ERROR);
+	    zf_abort(ZF_ABORT_CRYPTOAUTHLIB_ERR);
         }
     }
     else if (validate == 0)
@@ -393,12 +393,12 @@ static inline void stf_device_key_rotate(void)
         if (status != ATCA_SUCCESS)
         {
             LOG("atcab_verify_invalidate() failed: %02x\r\n", status);
-	    zf_abort(ZF_ABORT_INTERNAL_ERROR);
+	    zf_abort(ZF_ABORT_CRYPTOAUTHLIB_ERR);
         }
     }
     else
     {
-        LOG("err: valid must be true(0) or false(-1)");
+        LOG("err: valid must be true(0) or false(-1).\n");
 	zf_abort(ZF_ABORT_INTERNAL_ERROR);
     }
 
@@ -420,7 +420,7 @@ static inline void stf_device_read_pubkey_slot(void)
     if (status != ATCA_SUCCESS)
     {
         LOG("atcab_read_pubkey() failed: %02x\r\n", status);
-	zf_abort(ZF_ABORT_INTERNAL_ERROR);
+	zf_abort(ZF_ABORT_CRYPTOAUTHLIB_ERR);
     }
 }
 

@@ -213,7 +213,7 @@ static inline void stf_crypto_secretbox_encrypt ()
     if (32 != l)
     {
         LOG ("key buff wrong size\n");
-	zf_abort(ZF_ABORT_INTERNAL_ERROR);
+	zf_abort(ZF_ABORT_WRONG_REG_SIZE);
         return;
     }
 
@@ -223,7 +223,7 @@ static inline void stf_crypto_secretbox_encrypt ()
     if (4 != l)
     {
         LOG ("msgid wrong size\n");
-	zf_abort(ZF_ABORT_INTERNAL_ERROR);
+	zf_abort(ZF_ABORT_WRONG_REG_SIZE);
         return;
     }
 #else
@@ -293,7 +293,7 @@ static inline void stf_crypto_secretbox_decrypt ()
     if (4 != l)
     {
         LOG ("msgid wrong size\n");
-	zf_abort(ZF_ABORT_INTERNAL_ERROR);
+	zf_abort(ZF_ABORT_WRONG_REG_SIZE);
         return;
     }
 #else
@@ -710,6 +710,8 @@ stf_eval_resp_t stf_eval (const char *buf)
 		case ZF_ABORT_DIVISION_BY_ZERO: msg = "division by zero"; break;
 		case ZF_ABORT_DICT_WRITE_DISABLED: msg = "cannot write to dictionary"; break;
 		case ZF_ABORT_NOT_A_REGISTER: msg = "register does not exist"; break;
+		case ZF_ABORT_WRONG_REG_SIZE: msg = "register is the incorrect size"; break;
+		case ZF_ABORT_CRYPTOAUTHLIB_ERR: msg = "cryptoauthlib failed"; break;
 		default: msg = "unknown error";
 	}
 
