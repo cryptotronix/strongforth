@@ -45,52 +45,54 @@ typedef enum {
 	ZF_SYSCALL_USER = 128
 } zf_syscall_id;
 
-#ifdef ZF_CONST_DICTIONARY
+#if ZF_ENABLE_CONST_DICTIONARY
 /* Registers */
 typedef struct stf_register {
-	uint8_t pubkey[64];
-	uint8_t prikey[32];
-	uint8_t sig[64];
-	uint8_t rand[32];
-	uint8_t digest[32];
-	uint8_t sharesec[32];
-	uint8_t serial[9];
-	uint8_t ver_data[19];
-	uint8_t gen_data[3];
-	uint8_t seed[20];
-	uint8_t count[4];
 	uint8_t cipher[64];
-	uint8_t msg[28];
-	uint8_t symkey[32];
 	uint8_t epk[64];
-	uint8_t nonce[32];
-	uint8_t uplink[32];
+	uint8_t pubkey[64];
+	uint8_t sig[64];
+	uint8_t digest[32];
 	uint8_t dolink[32];
-	uint8_t upmsgid[4];
+	uint8_t nonce[32];
+	uint8_t prikey[32];
+	uint8_t rand[32];
+	uint8_t sharesec[32];
+	uint8_t symkey[32];
+	uint8_t uplink[32];
+	uint8_t msg[28];
+	uint8_t seed[20];
+	uint8_t ver_data[19];
+	uint8_t serial[9];
+	uint8_t count[4];
 	uint8_t domsgid[4];
+	uint8_t upmsgid[4];
+	uint8_t gen_data[3];
 } stf_register_t;
 
+/* Manually numbered for easier slicing */
+/* Register Names */
 typedef enum {
-	STF_REG_PUBKEY,
-	STF_REG_PRIKEY,
-	STF_REG_SIG,
-	STF_REG_RAND,
-	STF_REG_DIGEST,
-	STF_REG_SHARESEC,
-	STF_REG_SERIAL,
-	STF_REG_VER_DATA,
-	STF_REG_GEN_DATA,
-	STF_REG_SEED,
-	STF_REG_COUNT,
-	STF_REG_CIPHER,
-	STF_REG_MSG,
-	STF_REG_SYMKEY,
-	STF_REG_EPK,
-	STF_REG_NONCE,
-	STF_REG_UPLINK,
-	STF_REG_DOLINK,
-	STF_REG_UPMSGID,
-	STF_REG_DOMSGID
+	STF_REG_PUBKEY = 0,
+	STF_REG_PRIKEY = 1,
+	STF_REG_SIG = 2,
+	STF_REG_RAND = 3,
+	STF_REG_DIGEST = 4,
+	STF_REG_SHARESEC = 5,
+	STF_REG_SERIAL = 6,
+	STF_REG_VER_DATA = 7,
+	STF_REG_GEN_DATA = 8,
+	STF_REG_SEED = 9,
+	STF_REG_COUNT = 10,
+	STF_REG_CIPHER = 11,
+	STF_REG_MSG = 12,
+	STF_REG_SYMKEY = 13,
+	STF_REG_EPK = 14,
+	STF_REG_NONCE = 15,
+	STF_REG_UPLINK = 16,
+	STF_REG_DOLINK = 17,
+	STF_REG_UPMSGID = 18,
+	STF_REG_DOMSGID = 19
 } stf_register_id;
 #endif
 
@@ -100,7 +102,7 @@ typedef enum {
 
 void zf_init(int trace);
 void zf_bootstrap(void);
-#ifdef ZF_CONST_DICTIONARY
+#if ZF_ENABLE_CONST_DICTIONARY
 const void *zf_dump(size_t *len);
 #else
 void *zf_dump(size_t *len);
@@ -114,7 +116,7 @@ zf_cell zf_pick(zf_addr n);
 
 void dict_get_bytes(zf_addr addr, void *buf, size_t len);
 zf_addr dict_put_bytes(zf_addr addr, const void *buf, size_t len);
-#ifndef ZF_CONST_DICTIONARY
+#if !ZF_ENABLE_CONST_DICTIONARY
 uint8_t *dict_get_pointer(zf_addr addr, size_t len);
 #endif
 

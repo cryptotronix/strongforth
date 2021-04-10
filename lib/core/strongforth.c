@@ -55,7 +55,7 @@ sw_sha256_ctx g_sha256_ctx;
 
 static zf_cell STRONGFORTH_STATUS = 0;
 
-#ifdef ZF_CONST_DICTIONARY
+#if ZF_ENABLE_CONST_DICTIONARY
 static uint32_t B32_INPUT = ~0;
 #else
 static zf_addr B32_INPUT = 0;
@@ -144,7 +144,7 @@ static inline void stf_include(const char *fname)
 static inline void stf_save(const char *fname)
 {
 	size_t len;
-#ifdef ZF_CONST_DICTIONARY
+#if ZF_ENABLE_CONST_DICTIONARY
 	const void *p = zf_dump(&len);
 #else
 	void *p = zf_dump(&len);
@@ -217,7 +217,7 @@ static inline void stf_crypto_secretbox_encrypt ()
         return;
     }
 
-#ifdef ZF_CONST_DICTIONARY
+#if ZF_ENABLE_CONST_DICTIONARY
     uint8_t *msg_id = NULL;
     l = get_register (&msg_id, zf_pop());
     if (4 != l)
@@ -265,7 +265,7 @@ static inline void stf_crypto_secretbox_encrypt ()
 	zf_abort(ZF_ABORT_INTERNAL_ERROR);
     }
 
-#ifdef ZF_CONST_DICTIONARY
+#if ZF_ENABLE_CONST_DICTIONARY
     hydro_secretbox_encrypt(c_buf, m_buf, STH_SECRETBOX_MLEN,
                             (uint32_t) *msg_id, HYDRO_CONTEXT,
                             key_buf);
@@ -275,7 +275,7 @@ static inline void stf_crypto_secretbox_encrypt ()
                             key_buf);
 #endif
 
-#ifdef ZF_CONST_DICTIONARY
+#if ZF_ENABLE_CONST_DICTIONARY
     *msg_id = (uint32_t) *msg_id + 1;
 #endif
 }
@@ -287,7 +287,7 @@ static inline void stf_crypto_secretbox_decrypt ()
     if (32 != l)
         return;
 
-#ifdef ZF_CONST_DICTIONARY
+#if ZF_ENABLE_CONST_DICTIONARY
     uint8_t *msg_id = NULL;
     l = get_register (&msg_id, zf_pop());
     if (4 != l)
@@ -310,7 +310,7 @@ static inline void stf_crypto_secretbox_decrypt ()
     if (STH_SECRETBOX_CLEN != l)
         return;
 
-#ifdef ZF_CONST_DICTIONARY
+#if ZF_ENABLE_CONST_DICTIONARY
     int rc = hydro_secretbox_decrypt(m_buf, c_buf, STH_SECRETBOX_CLEN,
                                      (uint32_t) *msg_id, HYDRO_CONTEXT, key_buf);
 #else
@@ -320,7 +320,7 @@ static inline void stf_crypto_secretbox_decrypt ()
 
     if (0 == rc)
     {
-#ifdef ZF_CONST_DICTIONARY
+#if ZF_ENABLE_CONST_DICTIONARY
     	*msg_id = (uint32_t) *msg_id + 1;
 #endif
 
@@ -620,7 +620,7 @@ zf_cell zf_host_parse_num(const char *buf, uint8_t *b32)
         int8_t decolen;
         zf_addr addr;
 
-#ifdef ZF_CONST_DICTIONARY
+#if ZF_ENABLE_CONST_DICTIONARY
         if (B32_INPUT != (uint32_t) ~0)
         {
                 addr = B32_INPUT;
@@ -661,7 +661,7 @@ ATCA_STATUS stf_init (char *dict_path, ATCAIfaceCfg *cfg)
 	zf_bootstrap();
 	if (dict_path != NULL)
 	{
-#ifdef ZF_CONST_DICTIONARY
+#if ZF_ENABLE_CONST_DICTIONARY
 		LOG("warning: no dict loaded, constant dictionary enabled.\n");
 #else
 		stf_include(dict_path);
@@ -674,7 +674,7 @@ ATCA_STATUS stf_init (char *dict_path, ATCAIfaceCfg *cfg)
 	else
 		stat = ATCA_SUCCESS;
 
-#ifdef ZF_CONST_DICTIONARY
+#if ZF_ENABLE_CONST_DICTIONARY
 	memset(&STF_REGISTERS, 0, sizeof(stf_register_t));
 #endif
 

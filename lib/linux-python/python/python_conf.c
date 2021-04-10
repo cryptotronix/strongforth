@@ -1,3 +1,6 @@
+#ifndef pyconf_h
+#define pyconf_h
+
 #include "strongforth.h"
 
 ATCAIfaceCfg cfg_ateccx08a_kithid_default = {
@@ -17,3 +20,5 @@ void stf_py_callback_set_atcacfg(ATCAIfaceCfg **cfg)
 {
 	*cfg = &cfg_ateccx08a_kithid_default;
 }
+
+#endif

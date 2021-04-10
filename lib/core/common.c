@@ -1,6 +1,6 @@
 #include "common.h"
 
-#ifdef ZF_CONST_DICTIONARY
+#if ZF_ENABLE_CONST_DICTIONARY
 uint8_t get_register(uint8_t **buf, stf_register_id reg_id)
 {
 	uint8_t len = 0;

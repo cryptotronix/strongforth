@@ -8,7 +8,7 @@ DEPS    := $(subst .c,.d, $(SRC))
 CC	:= $(CROSS)gcc
 
 VPATH   := . ../linux ../core ./python
-CFLAGS	+= -I. -I../linux -I../core -I/usr/lib/cryptoauthlib -I/usr/include/cryptoauthlib -I/usr/include/python3.8 -DSTF_DEVICE=1 -DSTF_LOGGING=1 -DZF_CONST_DICTIONARY=1
+CFLAGS	+= -I. -I../linux -I../core -I/usr/lib/cryptoauthlib -I/usr/include/cryptoauthlib -I/usr/include/python3.8 -DSTF_DEVICE=1 -DSTF_LOGGING=1
 #CFLAGS  += -Os -g -std=c89 -ansi -pedantic -MMD
 CFLAGS  += -fPIC -Wall -Wextra -Werror -Wno-unused-parameter -Wno-clobbered -Wno-unused-result
 LDFLAGS	+= -g

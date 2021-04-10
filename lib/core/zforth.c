@@ -8,8 +8,12 @@
 
 #include "zforth.h"
 
-#ifdef ZF_CONST_DICTIONARY
+#if ZF_ENABLE_CONST_DICTIONARY
 #include "dict.h"
+#endif
+
+#if STF_USE_WHITELIST
+#include "whitelist.h"
 #endif
 
 /* Flags and length encoded in words */
@@ -53,7 +57,7 @@ typedef enum {
 } zf_prim;
 
 /* We only need these for the bootstrap function. */
-#ifdef ZF_CONST_DICTIONARY
+#if ZF_ENABLE_CONST_DICTIONARY
 #elif ZF_ENABLE_BOOTSTRAP
 static const char prim_names[] =
 	_("exit")    _("lit")        _("<0")    _(":")     _("_;")        _("+")
@@ -70,10 +74,14 @@ static const char prim_names[] =
 
 static zf_cell rstack[ZF_RSTACK_SIZE];
 static zf_cell dstack[ZF_DSTACK_SIZE];
-#ifdef ZF_CONST_DICTIONARY
+#if ZF_ENABLE_CONST_DICTIONARY
 extern const uint8_t dict[ZF_DICT_SIZE];
 #else
 static uint8_t dict[ZF_DICT_SIZE];
+#endif
+
+#if STF_USE_WHITELIST
+extern const char *stf_whitelist[STF_WHITELIST_LEN];
 #endif
 
 /* State and stack and interpreter pointers */
@@ -100,7 +108,7 @@ static jmp_buf jmpbuf;
 #define USERVAR_COUNT 5
 
 /* We only need these for the bootstrap function. */
-#ifdef ZF_CONST_DICTIONARY
+#if ZF_ENABLE_CONST_DICTIONARY
 #elif ZF_ENABLE_BOOTSTRAP
 static const char uservar_names[] =
 	_("h")   _("latest") _("trace")  _("compiling")  _("_postpone");
@@ -240,7 +248,7 @@ zf_cell zf_pickr(zf_addr n)
 
 zf_addr dict_put_bytes(zf_addr addr, const void *buf, size_t len)
 {
-#ifdef ZF_CONST_DICTIONARY
+#if ZF_ENABLE_CONST_DICTIONARY
 	zf_abort(ZF_ABORT_DICT_WRITE_DISABLED);
 	return 0;
 #else
@@ -431,6 +439,27 @@ static void create(const char *name, int flags)
 	trace("\n===");
 }
 
+/*
+ * Check the whitelist for a word
+ */
+
+static int check_whitelist(const char *name)
+{
+#if STF_USE_WHITELIST
+	uint16_t i = 0;
+	for(i=0; i<STF_WHITELIST_LEN; i++)
+	{
+		if (strlen(stf_whitelist[i]) == strlen(name))
+		{
+			if (memcmp(stf_whitelist[i], name, strlen(name)) == 0)
+				return 1;
+		}
+	}
+	return 0;
+#else
+	return 1;
+#endif
+}
 
 /*
  * Find word in dictionary, returning address and execution token
@@ -767,9 +796,15 @@ static void handle_word(const char *buf)
 		return;
 	}
 
+	/* Look up word in whitelist */
+
+	found = check_whitelist(buf);
+
 	/* Look up the word in the dictionary */
 
-	found = find_word(buf, &w, &c);
+	if (found) {
+		found = find_word(buf, &w, &c);
+	}
 
 	if(found) {
 
@@ -846,7 +881,7 @@ static void handle_char(char c)
 
 void zf_init(int enable_trace)
 {
-#ifdef ZF_CONST_DICTIONARY
+#if ZF_ENABLE_CONST_DICTIONARY
 	dsp = 0;
 	rsp = 0;
 #else
@@ -860,7 +895,7 @@ void zf_init(int enable_trace)
 }
 
 
-#ifdef ZF_CONST_DICTIONARY
+#if ZF_ENABLE_CONST_DICTIONARY
 void zf_bootstrap(void) {}
 #elif ZF_ENABLE_BOOTSTRAP
 
@@ -931,7 +966,7 @@ zf_result zf_eval(const char *buf)
 			buf ++;
 		}
 	} else {
-#ifndef ZF_CONST_DICTIONARY
+#if !ZF_ENABLE_CONST_DICTIONARY
 		COMPILING = 0;
 #endif
 		rsp = 0;
@@ -940,7 +975,7 @@ zf_result zf_eval(const char *buf)
 	}
 }
 
-#ifdef ZF_CONST_DICTIONARY
+#if ZF_ENABLE_CONST_DICTIONARY
 const void *zf_dump(size_t *len)
 {
 	if(len) *len = sizeof(dict);

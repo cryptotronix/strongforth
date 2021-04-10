@@ -21,7 +21,7 @@
 	#define LOG(...)
 #endif
 
-#ifdef ZF_CONST_DICTIONARY
+#if ZF_ENABLE_CONST_DICTIONARY
 stf_register_t STF_REGISTERS;
 
 uint8_t get_register(uint8_t **buf, stf_register_id reg_id);
