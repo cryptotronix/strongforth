@@ -58,6 +58,14 @@ def test_rotate(url):
 
         return resp[0][1]
 
+    resp = stf.stf_eval([s13_pub.encode("utf-8") + b"13 pub setpub"])
+    responses.append(str(resp[0][1]) + " : " + resp[0][2])
+
+    if resp[0][0] != 0:
+        print("slot 13 write failed")
+        print_array(responses)
+        return 1
+
     if rotate(False) != -1:
         print("invalidate failed")
         print_array(responses)
@@ -65,6 +73,11 @@ def test_rotate(url):
 
     resp = stf.stf_eval([s14_pub.encode("utf-8") + b"14 pub setpub"])
     responses.append(str(resp[0][1]) + " : " + resp[0][2])
+
+    if resp[0][0] != 0:
+        print("slot 14 write failed")
+        print_array(responses)
+        return 1
 
     stat = rotate(True)
     if stat != -1:
