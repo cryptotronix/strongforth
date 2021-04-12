@@ -161,6 +161,8 @@ var k 32 1 + allot
 var epk 64 1 + allot
 var non 32 1 + allot
 
+var uid 4 1 + allot
+var did 4 1 + allot
 var upl 32 1 + allot
 var dol 32 1 + allot
 
@@ -185,6 +187,8 @@ var dol 32 1 + allot
 64 epk !u8
 32 non !u8
 
+4 upl !u8
+4 dol !u8
 32 upl !u8
 32 dol !u8
 
@@ -207,26 +211,23 @@ var dol 32 1 + allot
 
 ( ENCRYPTION COMMANDS )
 
-var uid
-var did
-
-: ecdhkdf upl 0 shs hydrokdf dol 1 shs hydrokdf 0 uid ! 0 did ! ;
+: ecdhkdf upl 0 shs hydrokdf dol 1 shs hydrokdf uid memzero did memzero ;
 
 ( reversed )
-: ecdhkdfr dol 0 shs hydrokdf upl 1 shs hydrokdf 0 did ! 0 uid ! ;
+: ecdhkdfr dol 0 shs hydrokdf upl 1 shs hydrokdf uid memzero did memzero ;
 
 ( stateless reversed )
 : ecdhkdfrs ecdhkdfr
 	." upl< " upl 32>
 	." dol< " dol 32> ;
 
-: encrypt ( mlen -- ) c swap m uid @ k hydroe uid dup @ 1 + swap ! ;
-: decrypt ( -- ) c m did @ k hydrod dup 0 = unless did dup @ 1 + swap ! fi ;
+: encrypt ( mlen -- ) c swap m uid @ k hydroe ;
+: decrypt ( -- ) c m did @ k hydrod ;
 
 ( stateless )
-: encrypts ( mlen -- ) encrypt uid @ . ." uid ! " did @ . ." did ! | ";
+: encrypts ( mlen -- ) encrypt ." uid< " uid 32> ." did " did 32> ." | " ;
 ( stateless )
-: decrypts ( -- ) decrypt uid @ . ." uid ! " did @ . ." did ! | ";
+: decrypts ( -- ) decrypt ." uid< " uid 32> ." did " did 32> ." | ";
 
 ( DEVICE FLOW COMMANDS)
 

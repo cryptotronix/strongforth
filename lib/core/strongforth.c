@@ -217,7 +217,6 @@ static inline void stf_crypto_secretbox_encrypt ()
         return;
     }
 
-#if ZF_ENABLE_CONST_DICTIONARY
     uint8_t *msg_id = NULL;
     l = get_register (&msg_id, zf_pop());
     if (4 != l)
@@ -226,10 +225,6 @@ static inline void stf_crypto_secretbox_encrypt ()
 	zf_abort(ZF_ABORT_WRONG_REG_SIZE);
         return;
     }
-#else
-    uint32_t msg_id = zf_pop();
-#endif
-
 
     uint8_t *m_buf = NULL;
     l = get_register (&m_buf, zf_pop());
@@ -265,19 +260,11 @@ static inline void stf_crypto_secretbox_encrypt ()
 	zf_abort(ZF_ABORT_INTERNAL_ERROR);
     }
 
-#if ZF_ENABLE_CONST_DICTIONARY
     hydro_secretbox_encrypt(c_buf, m_buf, STH_SECRETBOX_MLEN,
                             (uint32_t) *msg_id, HYDRO_CONTEXT,
                             key_buf);
-#else
-    hydro_secretbox_encrypt(c_buf, m_buf, STH_SECRETBOX_MLEN,
-                            msg_id, HYDRO_CONTEXT,
-                            key_buf);
-#endif
 
-#if ZF_ENABLE_CONST_DICTIONARY
     *msg_id = (uint32_t) *msg_id + 1;
-#endif
 }
 
 static inline void stf_crypto_secretbox_decrypt ()
@@ -287,7 +274,6 @@ static inline void stf_crypto_secretbox_decrypt ()
     if (32 != l)
         return;
 
-#if ZF_ENABLE_CONST_DICTIONARY
     uint8_t *msg_id = NULL;
     l = get_register (&msg_id, zf_pop());
     if (4 != l)
@@ -296,9 +282,6 @@ static inline void stf_crypto_secretbox_decrypt ()
 	zf_abort(ZF_ABORT_WRONG_REG_SIZE);
         return;
     }
-#else
-    uint32_t msg_id = zf_pop();
-#endif
 
     uint8_t *m_buf = NULL;
     l = get_register (&m_buf, zf_pop());
@@ -310,19 +293,12 @@ static inline void stf_crypto_secretbox_decrypt ()
     if (STH_SECRETBOX_CLEN != l)
         return;
 
-#if ZF_ENABLE_CONST_DICTIONARY
     int rc = hydro_secretbox_decrypt(m_buf, c_buf, STH_SECRETBOX_CLEN,
                                      (uint32_t) *msg_id, HYDRO_CONTEXT, key_buf);
-#else
-    int rc = hydro_secretbox_decrypt(m_buf, c_buf, STH_SECRETBOX_CLEN,
-                                     msg_id, HYDRO_CONTEXT, key_buf);
-#endif
 
     if (0 == rc)
     {
-#if ZF_ENABLE_CONST_DICTIONARY
     	*msg_id = (uint32_t) *msg_id + 1;
-#endif
 
         ssize_t unpad =  (uint32_t)hydro_unpad(m_buf,
                                                STH_SECRETBOX_MLEN,
