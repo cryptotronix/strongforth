@@ -8,6 +8,13 @@
 
 #include "zforth.h"
 
+#if ZF_ENABLE_CONST_DICTIONARY
+#include "dict.h"
+#endif
+
+#if STF_USE_WHITELIST
+#include "whitelist.h"
+#endif
 
 /* Flags and length encoded in words */
 
@@ -49,6 +56,9 @@ typedef enum {
 	PRIM_COUNT
 } zf_prim;
 
+/* We only need these for the bootstrap function. */
+#if ZF_ENABLE_CONST_DICTIONARY
+#elif ZF_ENABLE_BOOTSTRAP
 static const char prim_names[] =
 	_("exit")    _("lit")        _("<0")    _(":")     _("_;")        _("+")
 	_("-")       _("*")          _("/")     _("%")     _("drop")      _("dup")
@@ -56,13 +66,23 @@ static const char prim_names[] =
 	_("jmp")     _("jmp0")       _("'")     _("_(")    _(">r")        _("r>")
 	_("=")       _("sys")        _("pick")  _(",,")    _("key")       _("lits")
 	_("##")      _("&");
+#else
+#endif
 
 
 /* Stacks and dictionary memory */
 
 static zf_cell rstack[ZF_RSTACK_SIZE];
 static zf_cell dstack[ZF_DSTACK_SIZE];
+#if ZF_ENABLE_CONST_DICTIONARY
+extern const uint8_t dict[ZF_DICT_SIZE];
+#else
 static uint8_t dict[ZF_DICT_SIZE];
+#endif
+
+#if STF_USE_WHITELIST
+extern const char *stf_whitelist[STF_WHITELIST_LEN];
+#endif
 
 /* State and stack and interpreter pointers */
 
@@ -87,8 +107,13 @@ static jmp_buf jmpbuf;
 #define POSTPONE  uservar[4]    /* flag to indicate next imm word should be compiled */
 #define USERVAR_COUNT 5
 
+/* We only need these for the bootstrap function. */
+#if ZF_ENABLE_CONST_DICTIONARY
+#elif ZF_ENABLE_BOOTSTRAP
 static const char uservar_names[] =
 	_("h")   _("latest") _("trace")  _("compiling")  _("_postpone");
+#else
+#endif
 
 static zf_addr *uservar = (zf_addr *)dict;
 
@@ -223,11 +248,16 @@ zf_cell zf_pickr(zf_addr n)
 
 zf_addr dict_put_bytes(zf_addr addr, const void *buf, size_t len)
 {
+#if ZF_ENABLE_CONST_DICTIONARY
+	zf_abort(ZF_ABORT_DICT_WRITE_DISABLED);
+	return 0;
+#else
 	const uint8_t *p = (const uint8_t *)buf;
 	size_t i = len;
 	CHECK(addr < ZF_DICT_SIZE-len, ZF_ABORT_OUTSIDE_MEM);
 	while(i--) dict[addr++] = *p++;
 	return len;
+#endif
 }
 
 
@@ -409,6 +439,27 @@ static void create(const char *name, int flags)
 	trace("\n===");
 }
 
+/*
+ * Check the whitelist for a word
+ */
+
+static int check_whitelist(const char *name)
+{
+#if STF_USE_WHITELIST
+	uint16_t i = 0;
+	for(i=0; i<STF_WHITELIST_LEN; i++)
+	{
+		if (strlen(stf_whitelist[i]) == strlen(name))
+		{
+			if (memcmp(stf_whitelist[i], name, strlen(name)) == 0)
+				return 1;
+		}
+	}
+	return 0;
+#else
+	return 1;
+#endif
+}
 
 /*
  * Find word in dictionary, returning address and execution token
@@ -745,9 +796,15 @@ static void handle_word(const char *buf)
 		return;
 	}
 
+	/* Look up word in whitelist */
+
+	found = check_whitelist(buf);
+
 	/* Look up the word in the dictionary */
 
-	found = find_word(buf, &w, &c);
+	if (found) {
+		found = find_word(buf, &w, &c);
+	}
 
 	if(found) {
 
@@ -774,11 +831,12 @@ static void handle_word(const char *buf)
 		/* Word not found: try to convert to a number and compile or push, depending
 		 * on state */
 
-		zf_cell v = zf_host_parse_num(buf);
+		uint8_t b32 = 0;
+		zf_cell v = zf_host_parse_num(buf, &b32);
 
 		if(COMPILING) {
 			dict_add_lit(v);
-		} else {
+		} else if(!b32) {
 			zf_push(v);
 		}
 	}
@@ -823,16 +881,23 @@ static void handle_char(char c)
 
 void zf_init(int enable_trace)
 {
+#if ZF_ENABLE_CONST_DICTIONARY
+	dsp = 0;
+	rsp = 0;
+#else
 	HERE = USERVAR_COUNT * sizeof(zf_addr);
 	TRACE = enable_trace;
 	LATEST = 0;
 	dsp = 0;
 	rsp = 0;
 	COMPILING = 0;
+#endif
 }
 
 
-#if ZF_ENABLE_BOOTSTRAP
+#if ZF_ENABLE_CONST_DICTIONARY
+void zf_bootstrap(void) {}
+#elif ZF_ENABLE_BOOTSTRAP
 
 /*
  * Functions for bootstrapping the dictionary by adding all primitive ops and the
@@ -901,19 +966,28 @@ zf_result zf_eval(const char *buf)
 			buf ++;
 		}
 	} else {
+#if !ZF_ENABLE_CONST_DICTIONARY
 		COMPILING = 0;
+#endif
 		rsp = 0;
 		dsp = 0;
 		return r;
 	}
 }
 
-
+#if ZF_ENABLE_CONST_DICTIONARY
+const void *zf_dump(size_t *len)
+{
+	if(len) *len = sizeof(dict);
+	return dict;
+}
+#else
 void *zf_dump(size_t *len)
 {
 	if(len) *len = sizeof(dict);
 	return dict;
 }
+#endif
 
 /*
  * End

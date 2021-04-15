@@ -8,16 +8,36 @@
 
 /* Sets the length of the return buffer from strongforth */
 
-#define STF_RETURN_BUF_LEN 300
+#define STF_RETURN_BUF_LEN 450
 
 /* buffer size for reading in instruction files */
 
 #define STF_FILE_INPUT_BUF_LEN 256
 
+/* Set to 1 to add a word whitelist. This whitelist will block the use of any
+ * word that is NOT on the list (with the exception of numbers). Importantly,
+ * this will not prevent the use of any word that has been precompiled into
+ * the definition of a word that is on the list, i.e it will only prevent
+ * use of words at the top level (assuming you pre-loaded a dictionary,
+ * as it would prevent the initial definition if attempted from an eval).
+ * Values can be set in "whitelist.h" */
+
+#define STF_USE_WHITELIST 0
+
+/* Set the length of the whitelist here. ENSURE that the the number of
+ * values in the array definition in "whitelist.h" matches with this one. */
+
+#define STF_WHITELIST_LEN 3
 
 /***********************
  * INTERNAL zFORTH OPTIONS *
  ***********************/
+
+/* Set to 1 to switch the dictionary to a constant variable. This will ensure
+ * that NO WRITES can occur to the dictionary, and will require you to put
+ * the hardcoded binary into the "dict.h" file. USE WITH CAUTION. */
+
+#define ZF_ENABLE_CONST_DICTIONARY 0
 
 /* Set to 1 to add tracing support for debugging and inspection. Requires the
  * zf_host_trace() function to be implemented. Adds about one kB to .text and

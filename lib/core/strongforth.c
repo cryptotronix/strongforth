@@ -6,16 +6,17 @@
 #include <getopt.h>
 #include <math.h>
 #include <unistd.h>
+#include <crypto/hashes/sha2_routines.h>
 
 #include "strongforth.h"
 #include "base32.h"
 #include "hydrogen.h"
 #include "common.h"
 
-#if defined(STF_DEVICE)
+#ifdef STF_DEVICE
 #include "device.h"
 #endif
-#if defined(STF_SERVER)
+#ifdef STF_SERVER
 #include "server.h"
 #endif
 
@@ -23,6 +24,8 @@
 #define HYDRO_CONTEXT "strongfo"
 #define HYDRO_MLEN (28)
 #define HYDRO_CLEN (HYDRO_MLEN + hydro_secretbox_HEADERBYTES)
+#define STH_SECRETBOX_CLEN (64)
+#define STH_SECRETBOX_MLEN (28)
 
 /* common syscall ids */
 #define STF_SYSCALL_EXIT ZF_SYSCALL_USER + 0
@@ -31,14 +34,32 @@
 #define STF_SYSCALL_SAVE ZF_SYSCALL_USER + 3
 #define STF_SYSCALL_B32IN ZF_SYSCALL_USER + 4
 #define STF_SYSCALL_B32TELL ZF_SYSCALL_USER + 5
-#define STF_SYSCALL_GETSTATUS ZF_SYSCALL_USER + 6
-#define STF_SYSCALL_HYDROENC ZF_SYSCALL_USER + 7
-#define STF_SYSCALL_HYDRODEC ZF_SYSCALL_USER + 8
+#define STF_SYSCALL_SETSTATUS ZF_SYSCALL_USER + 6
+#define STF_SYSCALL_SECRETBOX_KEYGEN ZF_SYSCALL_USER + 7
+#define STF_SYSCALL_SECRETBOX_ENCRYPT ZF_SYSCALL_USER + 8
+#define STF_SYSCALL_SECRETBOX_DECRYPT ZF_SYSCALL_USER + 9
+#define STF_SYSCALL_MEMZERO ZF_SYSCALL_USER + 10
+#define STF_SYSCALL_RANDOM_FILL ZF_SYSCALL_USER + 11
+#define STF_SYSCALL_KDF ZF_SYSCALL_USER + 12
+#define STF_SYSCALL_MEMCOPY ZF_SYSCALL_USER + 13
+#define STF_SYSCALL_SHA256_INIT ZF_SYSCALL_USER + 14
+#define STF_SYSCALL_SHA256_UPDATE ZF_SYSCALL_USER + 15
+#define STF_SYSCALL_SHA256_FINALIZE ZF_SYSCALL_USER + 16
+#define STF_SYSCALL_BUFFER_CMP ZF_SYSCALL_USER + 17
+#define STF_SYSCALL_BUFFER_COPY ZF_SYSCALL_USER + 18
 
 /* syscall ranges */
-#define STF_SYSCALLS_COMMON ZF_SYSCALL_USER + 8
+#define STF_SYSCALLS_COMMON ZF_SYSCALL_USER + 20
 
+sw_sha256_ctx g_sha256_ctx;
+
+static zf_cell STRONGFORTH_STATUS = 0;
+
+#if ZF_ENABLE_CONST_DICTIONARY
+static uint32_t B32_INPUT = ~0;
+#else
 static zf_addr B32_INPUT = 0;
+#endif
 
 static char RETURN_BUF[STF_RETURN_BUF_LEN] = {0};
 static size_t RETBUF_INDEX = 0;
@@ -46,7 +67,10 @@ static size_t RETBUF_INDEX = 0;
 static char* allot_retbuf (size_t len)
 {
 	if (RETBUF_INDEX + len > (sizeof(RETURN_BUF) - 2))
+	{
+		LOG("no space left in return buffer!");
 		return NULL;
+	}
         RETBUF_INDEX = RETBUF_INDEX + len;
 	return RETURN_BUF + (RETBUF_INDEX - len);
 }
@@ -54,7 +78,10 @@ static char* allot_retbuf (size_t len)
 static int retbuf_putchar (char c)
 {
 	if (RETBUF_INDEX > (sizeof(RETURN_BUF) - 2))
+	{
+		LOG("no space left in return buffer!");
 		return 1;
+	}
 	RETURN_BUF[RETBUF_INDEX++] = c;
 	return 0;
 }
@@ -103,8 +130,8 @@ static inline void stf_include(const char *fname)
 	FILE *f = fopen(fname, "rb");
 	if (!f)
     {
-        fprintf(stderr, "error opening file '%s': %s\n", fname, strerror(errno));
-        return;
+        LOG("error opening file '%s': %s\n", fname, strerror(errno));
+	zf_abort(ZF_ABORT_NOT_A_WORD);
     }
 
     while (fgets(buf, sizeof(buf), f))
@@ -117,7 +144,11 @@ static inline void stf_include(const char *fname)
 static inline void stf_save(const char *fname)
 {
 	size_t len;
+#if ZF_ENABLE_CONST_DICTIONARY
+	const void *p = zf_dump(&len);
+#else
 	void *p = zf_dump(&len);
+#endif
 	FILE *f = fopen(fname, "wb");
 	if (f)
     {
@@ -147,65 +178,271 @@ static inline void stf_b32tell(void)
 {
     zf_addr addr = zf_pop();
     uint8_t *data;
-    zf_cell len = get_crypto_pointer(&data, addr);
+    zf_cell len = get_register(&data, addr);
+    size_t encoded_len = ((len * 8) / 5);
+    if ((len * 8) % 5 > 0)
+	    encoded_len++;
 
-    char *retbuf = allot_retbuf(len + 1);
+    char *retbuf = allot_retbuf(encoded_len + 1);
     if (retbuf){
-    	base32_encode(data, len, (uint8_t *) retbuf, len);
-	memset(retbuf + len, ' ', 1);
+    	base32_encode(data, len, (uint8_t *) retbuf, encoded_len);
+	memset(retbuf + encoded_len, ' ', 1);
     }
 }
 
-static inline void stf_hydro_encrypt(void)
+static inline void stf_set_strongforth_status(void)
 {
-    uint8_t *key;
-    int l = get_crypto_pointer(&key, zf_pop());
-    assert (hydro_secretbox_KEYBYTES == l);
-
-    uint8_t *iv;
-    l = get_crypto_pointer(&iv, zf_pop());
-    assert (32 == l);
-
-    int msg_id = zf_pop();
-
-    uint8_t *m_;
-    int mlen = get_crypto_pointer(&m_, zf_pop());
-    assert (HYDRO_MLEN == mlen);
-
-    uint8_t *c;
-    l = get_crypto_pointer(&c, zf_pop());
-    assert (HYDRO_CLEN == l);
-
-    int rc = hydro_secretbox_encrypt_iv(c, m_, mlen, msg_id, HYDRO_CONTEXT, key, iv);
-    assert (0==rc);
+    STRONGFORTH_STATUS = zf_pop();
 }
 
-static inline void stf_hydro_decrypt(void)
+static inline void stf_crypto_secretbox_keygen(void)
 {
-    uint8_t *key;
-    int l = get_crypto_pointer(&key, zf_pop());
-    assert (hydro_secretbox_KEYBYTES == l);
+    uint8_t *key_buf = NULL;
+    uint8_t l = get_register (&key_buf, zf_pop());
+    if (32 == l)
+    {
+        hydro_secretbox_keygen (key_buf);
+    }
 
-    int msg_id = zf_pop();
+}
 
-    uint8_t *m_;
-    int mlen = get_crypto_pointer(&m_, zf_pop());
-    assert (HYDRO_MLEN == mlen);
+static inline void stf_crypto_secretbox_encrypt ()
+{
+    uint8_t *key_buf = NULL;
+    uint8_t l = get_register (&key_buf, zf_pop());
+    if (32 != l)
+    {
+        LOG ("key buff wrong size\n");
+	zf_abort(ZF_ABORT_WRONG_REG_SIZE);
+        return;
+    }
 
-    uint8_t *c;
-    l = get_crypto_pointer(&c, zf_pop());
-    assert (HYDRO_CLEN == l);
+    uint8_t *msg_id = NULL;
+    l = get_register (&msg_id, zf_pop());
+    if (4 != l)
+    {
+        LOG ("msgid wrong size\n");
+	zf_abort(ZF_ABORT_WRONG_REG_SIZE);
+        return;
+    }
 
-    int rc = hydro_secretbox_decrypt(m_, c, HYDRO_CLEN, msg_id, HYDRO_CONTEXT, key);
+    uint8_t *m_buf = NULL;
+    l = get_register (&m_buf, zf_pop());
+    if (STH_SECRETBOX_MLEN != l)
+    {
+        LOG ("m buff wrong size\n");
+	zf_abort(ZF_ABORT_INVALID_SIZE);
+    }
+
+
+    l = zf_pop();
+    if (l > STH_SECRETBOX_MLEN)
+    {
+        LOG ("mlen wrong size\n");
+	zf_abort(ZF_ABORT_INVALID_SIZE);
+    }
+    else if (l < STH_SECRETBOX_MLEN)
+    {
+        int padsize = hydro_pad(m_buf, l, STH_SECRETBOX_MLEN, STH_SECRETBOX_MLEN);
+        if (STH_SECRETBOX_MLEN != padsize)
+        {
+            LOG ("padding fail %d\n", padsize);
+	    zf_abort(ZF_ABORT_INTERNAL_ERROR);
+        }
+    }
+
+
+    uint8_t *c_buf = NULL;
+    l = get_register (&c_buf, zf_pop());
+    if (STH_SECRETBOX_CLEN != l)
+    {
+        LOG ("ctext  fail fail\n");
+	zf_abort(ZF_ABORT_INTERNAL_ERROR);
+    }
+
+    hydro_secretbox_encrypt(c_buf, m_buf, STH_SECRETBOX_MLEN,
+                            (uint32_t) *msg_id, HYDRO_CONTEXT,
+                            key_buf);
+
+    *msg_id = (uint32_t) *msg_id + 1;
+}
+
+static inline void stf_crypto_secretbox_decrypt ()
+{
+    uint8_t *key_buf = NULL;
+    uint8_t l = get_register (&key_buf, zf_pop());
+    if (32 != l)
+        return;
+
+    uint8_t *msg_id = NULL;
+    l = get_register (&msg_id, zf_pop());
+    if (4 != l)
+    {
+        LOG ("msgid wrong size\n");
+	zf_abort(ZF_ABORT_WRONG_REG_SIZE);
+        return;
+    }
+
+    uint8_t *m_buf = NULL;
+    l = get_register (&m_buf, zf_pop());
+    if (STH_SECRETBOX_MLEN != l)
+        return;
+
+    uint8_t *c_buf = NULL;
+    l = get_register (&c_buf, zf_pop());
+    if (STH_SECRETBOX_CLEN != l)
+        return;
+
+    int rc = hydro_secretbox_decrypt(m_buf, c_buf, STH_SECRETBOX_CLEN,
+                                     (uint32_t) *msg_id, HYDRO_CONTEXT, key_buf);
 
     if (0 == rc)
     {
-        zf_push (~0);
+    	*msg_id = (uint32_t) *msg_id + 1;
+
+        ssize_t unpad =  (uint32_t)hydro_unpad(m_buf,
+                                               STH_SECRETBOX_MLEN,
+                                               STH_SECRETBOX_MLEN);
+        if (-1 == unpad || unpad > 28)
+        {
+            /*  push max message size */
+            zf_push (STH_SECRETBOX_MLEN);
+        }
+        else
+        {
+            zf_push ((uint32_t) unpad);
+        }
     }
     else
     {
-        zf_push (0);
+        fprintf (stdout, "decrypt failed\n");
+        zf_push(0);
     }
+}
+
+static inline void stf_crypto_memzero ()
+{
+    uint8_t *buf = NULL;
+    uint8_t l = get_register (&buf, zf_pop());
+
+    hydro_memzero (buf, l);
+
+}
+
+static inline void stf_crypto_random_fill()
+{
+    uint8_t *buf = NULL;
+    uint8_t l = get_register (&buf, zf_pop());
+
+    if (buf)
+        hydro_random_buf(buf, l);
+}
+
+static inline void stf_crypto_kdf()
+{
+    uint8_t *master_key = NULL;
+    uint8_t l = get_register (&master_key, zf_pop());
+    if (l != hydro_kdf_KEYBYTES)
+    {
+        LOG("invalid kdf keybytes\n");
+        return;
+    }
+
+
+    uint32_t sub_key_id = zf_pop();
+
+    uint8_t *sub_key = NULL;
+    uint8_t skl = get_register (&sub_key, zf_pop());
+    if (skl < 16 || skl > 64)
+    {
+        LOG("invalid subkey buffer\n");
+        return;
+    }
+
+    hydro_kdf_derive_from_key(sub_key, skl, sub_key_id, HYDRO_CONTEXT, master_key);
+}
+
+static inline void stf_debug_copy_buf()
+{
+    uint8_t *a = NULL;
+    uint8_t al = get_register (&a, zf_pop());
+
+    uint8_t *b = NULL;
+    uint8_t bl = get_register (&b, zf_pop());
+
+    assert (al == bl);
+
+    memcpy (b, a, bl);
+}
+
+static inline void stf_sha256_init(void)
+{
+        sw_sha256_init(&g_sha256_ctx);
+}
+
+static inline void stf_sha256_update(void)
+{
+        uint8_t *p;
+        int p_len = get_register(&p, zf_pop());
+
+        sw_sha256_update(&g_sha256_ctx, p, p_len);
+}
+
+static inline void stf_sha256_finalize(void)
+{
+        uint8_t *p;
+        int p_len = get_register(&p, zf_pop());
+        assert (32 == p_len);
+
+        sw_sha256_final(&g_sha256_ctx, p);
+
+
+        sw_sha256_update(&g_sha256_ctx, p, p_len);
+}
+
+static inline void stf_buffer_compare(void)
+{
+        uint8_t *buf1;
+        int b1_len = get_register(&buf1, zf_pop());
+
+        uint8_t *buf2;
+        int b2_len = get_register(&buf2, zf_pop());
+
+	if (b1_len != b2_len)
+	{
+		zf_push(0);
+		return;
+	}
+
+	while(--b1_len >= 0)
+	{
+		if(buf1[b1_len] != buf2[b1_len])
+		{
+			zf_push(0);
+			return;
+		}
+		b1_len--;
+	}
+
+	zf_push(-1);
+}
+
+static inline void stf_buffer_copy(void)
+{
+        uint8_t *bufsrc;
+        int bs_len = get_register(&bufsrc, zf_pop());
+
+        uint8_t *bufdest;
+        int bd_len = get_register(&bufdest, zf_pop());
+
+	if (bs_len > bd_len)
+	{
+        	LOG ("err: src buf larger than dest buf\n");
+		zf_abort(ZF_ABORT_INVALID_SIZE);
+	}
+
+	memset(bufdest, 0, bd_len);
+	memcpy(bufdest, bufsrc, bs_len);
 }
 
 /*
@@ -232,7 +469,7 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 
     	    	/* Application specific callbacks */
     	    	case STF_SYSCALL_EXIT:
-    	        		exit(0);
+			exit(0);
     	    		break;
 
     	    	case STF_SYSCALL_SIN:
@@ -260,12 +497,61 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 			stf_b32tell();
 			break;
 
-		case STF_SYSCALL_GETSTATUS:
-		    zf_push(get_strongforth_status());
-		    break;
+		case STF_SYSCALL_SETSTATUS:
+			stf_set_strongforth_status();
+			break;
+
+    		case STF_SYSCALL_SECRETBOX_KEYGEN:
+			stf_crypto_secretbox_keygen();
+			break;
+
+    		case STF_SYSCALL_SECRETBOX_ENCRYPT:
+    			stf_crypto_secretbox_encrypt();
+    			break;
+
+    		case STF_SYSCALL_SECRETBOX_DECRYPT:
+    			stf_crypto_secretbox_decrypt();
+    			break;
+
+    		case STF_SYSCALL_MEMZERO:
+    			stf_crypto_memzero();
+   			break;
+
+    		case STF_SYSCALL_RANDOM_FILL:
+    			stf_crypto_random_fill();
+    			break;
+
+    		case STF_SYSCALL_KDF:
+   			stf_crypto_kdf();
+    			break;
+
+		case STF_SYSCALL_MEMCOPY:
+			stf_debug_copy_buf();
+			break;
+
+		case STF_SYSCALL_SHA256_INIT:
+			stf_sha256_init();
+			break;
+
+		case STF_SYSCALL_SHA256_UPDATE:
+			stf_sha256_update();
+			break;
+
+		case STF_SYSCALL_SHA256_FINALIZE:
+			stf_sha256_finalize();
+			break;
+
+		case STF_SYSCALL_BUFFER_CMP:
+			stf_buffer_compare();
+			break;
+
+		case STF_SYSCALL_BUFFER_COPY:
+			stf_buffer_copy();
+			break;
 
     	    	default:
-    	    		printf("unhandled syscall %d\n", id);
+    	    		LOG("err: unhandled syscall %d\n", id);
+			zf_abort(ZF_ABORT_NOT_A_WORD);
     	    		break;
     	}
     }
@@ -290,9 +576,11 @@ zf_input_state zf_host_sys(zf_syscall_id id, const char *input)
 
 void zf_host_trace(const char *fmt, va_list va)
 {
-	fprintf(stderr, "\033[1;30m");
-	vfprintf(stderr, fmt, va);
-	fprintf(stderr, "\033[0m");
+	LOG("\033[1;30m");
+#ifdef STF_LOGGING
+	vfprintf(stdout, fmt, va);
+#endif
+	LOG("\033[0m");
 }
 
 
@@ -300,7 +588,7 @@ void zf_host_trace(const char *fmt, va_list va)
  * Parse number
  */
 
-zf_cell zf_host_parse_num(const char *buf)
+zf_cell zf_host_parse_num(const char *buf, uint8_t *b32)
 {
 	zf_cell v;
         uint8_t *b32buf;
@@ -308,19 +596,27 @@ zf_cell zf_host_parse_num(const char *buf)
         int8_t decolen;
         zf_addr addr;
 
+#if ZF_ENABLE_CONST_DICTIONARY
+        if (B32_INPUT != (uint32_t) ~0)
+        {
+                addr = B32_INPUT;
+                B32_INPUT = ~0;
+#else
         if (B32_INPUT != 0)
         {
                 addr = B32_INPUT;
                 B32_INPUT = 0;
+#endif
+		*b32 = -1;
 
-		b32len = get_crypto_pointer(&b32buf, addr);
+		b32len = get_register(&b32buf, addr);
                 decolen = base32_decode((const uint8_t*) buf, b32buf, b32len);
                 if (decolen < 1)
 		        zf_abort(ZF_ABORT_NOT_A_WORD);
-                v = addr;
         }
         else
         {
+		*b32 = 0;
 	        int r = sscanf(buf, "%d", &v);
 	        if(r == 0) {
 		        zf_abort(ZF_ABORT_NOT_A_WORD);
@@ -340,13 +636,23 @@ ATCA_STATUS stf_init (char *dict_path, ATCAIfaceCfg *cfg)
 	// TODO will not be bootstrapping and including in future, will use binary
 	zf_bootstrap();
 	if (dict_path != NULL)
+	{
+#if ZF_ENABLE_CONST_DICTIONARY
+		LOG("warning: no dict loaded, constant dictionary enabled.\n");
+#else
 		stf_include(dict_path);
+#endif
+	}
 
 	ATCA_STATUS stat = ~ATCA_SUCCESS;
 	if (cfg != NULL)
 		stat = atcab_init(cfg);
 	else
 		stat = ATCA_SUCCESS;
+
+#if ZF_ENABLE_CONST_DICTIONARY
+	memset(&STF_REGISTERS, 0, sizeof(stf_register_t));
+#endif
 
 	return stat;
 }
@@ -358,15 +664,13 @@ ATCA_STATUS stf_init (char *dict_path, ATCAIfaceCfg *cfg)
 
 stf_eval_resp_t stf_eval (const char *buf)
 {
-	const char *msg  = NULL;
-	char *retbuf = NULL;
-
 	stf_eval_resp_t resp;
 
 	reset_retbuf();
-
 	zf_result rv = zf_eval(buf);
 
+#ifdef STF_LOGGING
+	const char *msg  = NULL;
 	switch(rv)
 	{
 		case ZF_OK: break;
@@ -380,18 +684,21 @@ stf_eval_resp_t stf_eval (const char *buf)
 		case ZF_ABORT_COMPILE_ONLY_WORD: msg = "compile-only word"; break;
 		case ZF_ABORT_INVALID_SIZE: msg = "invalid size"; break;
 		case ZF_ABORT_DIVISION_BY_ZERO: msg = "division by zero"; break;
+		case ZF_ABORT_DICT_WRITE_DISABLED: msg = "cannot write to dictionary"; break;
+		case ZF_ABORT_NOT_A_REGISTER: msg = "register does not exist"; break;
+		case ZF_ABORT_WRONG_REG_SIZE: msg = "register is the incorrect size"; break;
+		case ZF_ABORT_CRYPTOAUTHLIB_ERR: msg = "cryptoauthlib failed"; break;
 		default: msg = "unknown error";
 	}
 
-	if (msg)
-	{
-		reset_retbuf();
-		retbuf = allot_retbuf (strlen(msg));
-		memcpy(retbuf, msg, strlen(msg));
-	}
+	if (rv != ZF_OK)
+		LOG("err: %s\n", msg);
+#endif
 
 	resp.rc = rv;
-	resp.stf_status = get_strongforth_status();
+	resp.stf_status = (uint32_t) STRONGFORTH_STATUS;
+
+	STRONGFORTH_STATUS = 0;
 
 	return resp;
 }

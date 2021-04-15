@@ -9,39 +9,33 @@
 #include "common.h"
 #include "server.h"
 #include "uECC.h"
+#include "hydrogen.h"
+#include "impl/common.h"
 
-#define STF_SERVER_SYSCALL_GETRAND ZF_SYSCALL_USER + 9
-#define STF_SERVER_SYSCALL_SIGN ZF_SYSCALL_USER + 10
-#define STF_SERVER_SYSCALL_VERIFY ZF_SYSCALL_USER + 11
-#define STF_SERVER_SYSCALL_ECDH ZF_SYSCALL_USER + 12
-#define STF_DEVICE_SYSCALL_GENKEY ZF_SYSCALL_USER + 14
-#define STF_SERVER_SYSCALL_SHA256_INIT ZF_SYSCALL_USER + 40
-#define STF_SERVER_SYSCALL_SHA256_UPDATE ZF_SYSCALL_USER + 41
-#define STF_SERVER_SYSCALL_SHA256_FINALIZE ZF_SYSCALL_USER + 42
-#define STF_SERVER_SYSCALL_ROT2 ZF_SYSCALL_USER + 43
-
-sw_sha256_ctx g_sha256_ctx;
+#define STF_SERVER_SYSCALL_GETRAND ZF_SYSCALL_USER + 21
+#define STF_SERVER_SYSCALL_SIGN ZF_SYSCALL_USER + 22
+#define STF_SERVER_SYSCALL_VERIFY ZF_SYSCALL_USER + 23
+#define STF_SERVER_SYSCALL_ECDH ZF_SYSCALL_USER + 24
+#define STF_DEVICE_SYSCALL_GENKEY ZF_SYSCALL_USER + 25
+#define STF_SERVER_SYSCALL_ROT2 ZF_SYSCALL_USER + 51
 
 static inline void stf_server_get_random(void)
 {
         uint8_t *r;
-        int b32len = get_crypto_pointer(&r, zf_pop());
-        assert(32 == b32len);
-        int rd = open("/dev/urandom", O_RDONLY);
-        assert (rd > 0);
+        int b32len = get_register(&r, zf_pop());
+        assert(ATCA_KEY_SIZE == b32len);
 
-        ssize_t result = read(rd, r, 32);
-        assert (result >= 0);
+	hydro_random_buf(r, ATCA_KEY_SIZE);
 }
 
 static inline void stf_server_do_ecdsa_sign(void)
 {
         uint8_t *sig;
-        int sig_len = get_crypto_pointer(&sig, zf_pop());
+        int sig_len = get_register(&sig, zf_pop());
         uint8_t *prikey;
-        int prikey_len = get_crypto_pointer(&prikey, zf_pop());
+        int prikey_len = get_register(&prikey, zf_pop());
         uint8_t *digest;
-        int digest_len = get_crypto_pointer(&digest, zf_pop());
+        int digest_len = get_register(&digest, zf_pop());
 
         assert(sig_len == 64);
         assert(prikey_len == 32);
@@ -54,11 +48,11 @@ static inline void stf_server_do_ecdsa_sign(void)
 static inline void stf_server_do_ecdsa_verify(void)
 {
         uint8_t *sig;
-        int sig_len = get_crypto_pointer(&sig, zf_pop());
+        int sig_len = get_register(&sig, zf_pop());
         uint8_t *pubkey;
-        int pubkey_len = get_crypto_pointer(&pubkey, zf_pop());
+        int pubkey_len = get_register(&pubkey, zf_pop());
         uint8_t *digest;
-        int digest_len = get_crypto_pointer(&digest, zf_pop());
+        int digest_len = get_register(&digest, zf_pop());
 
         assert(sig_len == 64);
         assert(pubkey_len == 64);
@@ -75,11 +69,11 @@ static inline void stf_server_do_ecdsa_verify(void)
 static inline void stf_server_do_ecdh(void)
 {
         uint8_t *sharedsec;
-        int sharedsec_len = get_crypto_pointer(&sharedsec, zf_pop());
+        int sharedsec_len = get_register(&sharedsec, zf_pop());
         uint8_t *prikey;
-        int prikey_len = get_crypto_pointer(&prikey, zf_pop());
+        int prikey_len = get_register(&prikey, zf_pop());
         uint8_t *pubkey;
-        int pubkey_len = get_crypto_pointer(&pubkey, zf_pop());
+        int pubkey_len = get_register(&pubkey, zf_pop());
 
         assert(pubkey_len == 64);
         assert(prikey_len == 32);
@@ -92,9 +86,9 @@ static inline void stf_server_do_ecdh(void)
 static inline void stf_server_do_genkey(void)
 {
         uint8_t *pubkey;
-        int pubkey_len = get_crypto_pointer(&pubkey, zf_pop());
+        int pubkey_len = get_register(&pubkey, zf_pop());
         uint8_t *prikey;
-        int prikey_len = get_crypto_pointer(&prikey, zf_pop());
+        int prikey_len = get_register(&prikey, zf_pop());
         assert(pubkey_len == 64);
         assert(prikey_len == 32);
 
@@ -102,56 +96,31 @@ static inline void stf_server_do_genkey(void)
         assert(1 == rc);
 }
 
-static inline void stf_server_sha256_init(void)
-{
-        sw_sha256_init(&g_sha256_ctx);
-}
-
-static inline void stf_server_sha256_update(void)
-{
-        uint8_t *p;
-        int p_len = get_crypto_pointer(&p, zf_pop());
-
-        sw_sha256_update(&g_sha256_ctx, p, p_len);
-}
-
-static inline void stf_server_sha256_finalize(void)
-{
-        uint8_t *p;
-        int p_len = get_crypto_pointer(&p, zf_pop());
-        assert (32 == p_len);
-
-        sw_sha256_final(&g_sha256_ctx, p);
-
-
-        sw_sha256_update(&g_sha256_ctx, p, p_len);
-}
-
 static inline void stf_server_key_rotation_intermediate(void)
 {
         uint8_t *digest;
-        int digest_len = get_crypto_pointer(&digest, zf_pop());
+        int digest_len = get_register(&digest, zf_pop());
 
         uint8_t *verify_other_data;
-        int verdata_len = get_crypto_pointer(&verify_other_data, zf_pop());
+        int verdata_len = get_register(&verify_other_data, zf_pop());
 
         uint8_t *gen_key_other_data;
-        int gendata_len = get_crypto_pointer(&gen_key_other_data, zf_pop());
+        int gendata_len = get_register(&gen_key_other_data, zf_pop());
+
+        uint8_t *serial;
+        int serial_len = get_register(&serial, zf_pop());
+
+        uint8_t *pubkey;
+        int pubkey_len = get_register(&pubkey, zf_pop());
+
+        uint8_t *random;
+        int rand_len = get_register(&random, zf_pop());
+
+        uint8_t *seed;
+        int seed_len = get_register(&seed, zf_pop());
 
 	uint16_t key_bit = zf_pop();
 	uint16_t slot_bit = zf_pop();
-
-        uint8_t *serial;
-        int serial_len = get_crypto_pointer(&serial, zf_pop());
-
-        uint8_t *pubkey;
-        int pubkey_len = get_crypto_pointer(&pubkey, zf_pop());
-
-        uint8_t *random;
-        int rand_len = get_crypto_pointer(&random, zf_pop());
-
-        uint8_t *seed;
-        int seed_len = get_crypto_pointer(&seed, zf_pop());
 
 	zf_cell validate = zf_pop();
 
@@ -171,9 +140,9 @@ static inline void stf_server_key_rotation_intermediate(void)
         assert(seed_len == 20);
 
 	if (validate == 0)
-		validate = 1;
-	else if (validate == -1)
 		validate = 0;
+	else if (validate == -1)
+		validate = 1;
 
         memset(&temp_key, 0, sizeof(temp_key));
         memset(&nonce_params, 0, sizeof(nonce_params));
@@ -187,7 +156,7 @@ static inline void stf_server_key_rotation_intermediate(void)
         if (status != ATCA_SUCCESS)
 	{
 		fprintf(stderr, "atcah_nonce() failed: %02x\r\n", status);
-		return;
+		zf_abort(ZF_ABORT_CRYPTOAUTHLIB_ERR);
 	}
 
 	memset(gen_key_other_data, 0, 3);
@@ -203,7 +172,7 @@ static inline void stf_server_key_rotation_intermediate(void)
         if (status != ATCA_SUCCESS)
 	{
 		fprintf(stderr, "atcah_gen_key_msg() failed: %02x\r\n", status);
-		return;
+		zf_abort(ZF_ABORT_CRYPTOAUTHLIB_ERR);
 	}
 
         memset(&sign_params, 0, sizeof(sign_params));
@@ -221,7 +190,7 @@ static inline void stf_server_key_rotation_intermediate(void)
         if (status != ATCA_SUCCESS)
 	{
 		fprintf(stderr, "atcah_sign_internal_msg() failed: %02x\r\n", status);
-		return;
+		zf_abort(ZF_ABORT_CRYPTOAUTHLIB_ERR);
 	}
 }
 
@@ -249,24 +218,13 @@ void stf_server_sys(zf_syscall_id id, const char *input)
 			stf_server_do_genkey();
 			break;
 
-		case STF_SERVER_SYSCALL_SHA256_INIT:
-			stf_server_sha256_init();
-			break;
-
-		case STF_SERVER_SYSCALL_SHA256_UPDATE:
-			stf_server_sha256_update();
-			break;
-
-		case STF_SERVER_SYSCALL_SHA256_FINALIZE:
-			stf_server_sha256_finalize();
-			break;
-
 		case STF_SERVER_SYSCALL_ROT2:
 			stf_server_key_rotation_intermediate();
 			break;
 
     	    	default:
-    	    		printf("unhandled syscall %d\n", id);
+    	    		LOG("unhandled syscall %d\n", id);
+			zf_abort(ZF_ABORT_NOT_A_WORD);
     	    		break;
     }
 }

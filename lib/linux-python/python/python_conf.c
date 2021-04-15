@@ -1,3 +1,6 @@
+#ifndef pyconf_h
+#define pyconf_h
+
 #include "strongforth.h"
 
 ATCAIfaceCfg cfg_ateccx08a_kithid_default = {
@@ -13,18 +16,9 @@ ATCAIfaceCfg cfg_ateccx08a_kithid_default = {
     }
 };
 
-int main(int argc, char **argv)
+void stf_py_callback_set_atcacfg(ATCAIfaceCfg **cfg)
 {
-	ATCA_STATUS status = stf_init("../../forth/strongforth.zf", &cfg_ateccx08a_kithid_default);
-	if (status != ATCA_SUCCESS)
-	{
-        	fprintf(stderr, "init failed: %02x\r\n", status);
-		exit(status);
-	}
-	stf_eval_resp_t resp = stf_eval("ran getrand ran 32> ");
-	printf("%s", (char *)stf_get_retbuf());
-	printf("\nzf status: %i", resp.rc);
-	printf("\nstrongforth status: %i\n", resp.stf_status);
-	return 0;
+	*cfg = &cfg_ateccx08a_kithid_default;
 }
 
+#endif

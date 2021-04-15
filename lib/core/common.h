@@ -15,11 +15,18 @@
 #define VERIFY_CONFIG_LEN 19
 #define NONCE_SEED_LEN 20
 
-/* commented out until used
-void set_strongforth_status(zf_cell val)
-*/
+#ifdef STF_LOGGING
+	#define LOG(...) fprintf(stdout, __VA_ARGS__)
+#else
+	#define LOG(...)
+#endif
 
-zf_cell get_strongforth_status();
+#if ZF_ENABLE_CONST_DICTIONARY
+stf_register_t STF_REGISTERS;
 
-uint8_t get_crypto_pointer(uint8_t **buf, zf_addr addr);
+uint8_t get_register(uint8_t **buf, stf_register_id reg_id);
+#else
+uint8_t get_register(uint8_t **buf, zf_addr addr);
+#endif
+
 #endif
